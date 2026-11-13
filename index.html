@@ -1,3 +1,7 @@
+Dưới đây là file index.html hoàn chỉnh đã điều chỉnh lại toàn bộ cơ chế phóng
+to/thu nhỏ trên điện thoại để thao tác chụm/tách 2 ngón tay luôn mượt mà và bám
+chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -24,10 +28,14 @@
     ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-    /* Thanh kéo ngang & dọc nổi bật trong khung Xem Tài Liệu Gốc */
+    /* Thanh kéo ngang & dọc nổi bật trong khung Xem Tài Liệu Gốc + Tắt scroll anchoring để không bị nhảy trang khi phóng to */
     #viewerScrollContainer {
       touch-action: pan-x pan-y;
       overscroll-behavior: contain;
+      overflow-anchor: none;
+    }
+    #pdfCanvasWrapper, .pdf-page-slot {
+      overflow-anchor: none;
     }
     #viewerScrollContainer::-webkit-scrollbar { width: 10px; height: 10px; }
     @media (min-width: 640px) {
@@ -2435,7 +2443,7 @@
     }
 
     // =========================================================================
-    // 5. TRÌNH XEM TÀI LIỆU GỐC + CHỤM 2 NGÓN TAY (PINCH-TO-ZOOM) RIÊNG VÙNG VĂN BẢN
+    // 5. TRÌNH XEM TÀI LIỆU GỐC + CHỤM 2 NGÓN TAY (PINCH-TO-ZOOM) BÁM ĐÚNG VỊ TRÍ NGÓN TAY
     // =========================================================================
 
     function revokeActiveViewerBlobUrls() {
@@ -2515,7 +2523,7 @@
       const rawWrapper = document.getElementById('rawTextWrapper');
       otherWrapper.style.zoom = activeDocZoom;
       rawWrapper.style.zoom = activeDocZoom;
-      otherWrapper.style.transform = `rotate(${activeViewerRotation}deg)`;
+      otherWrapper.style.transform = '';
       document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
     }
 
@@ -2531,18 +2539,21 @@
 
         slot.style.width = `${w}px`;
         slot.style.height = `${h}px`;
-        const canvas = slot.querySelector('.pdf-page-canvas');
-        const overlay = slot.querySelector('.pdf-page-overlay');
-        if (canvas) {
-          canvas.style.width = `${w}px`;
-          canvas.style.height = `${h}px`;
-        }
-        if (overlay) {
-          const renderedScale = parseFloat(slot.dataset.renderedScale || String(activePdfScale));
-          if (renderedScale > 0) {
-            const ratio = newScale / renderedScale;
-            overlay.style.transformOrigin = '0 0';
-            overlay.style.transform = `scale(${ratio})`;
+
+        if (slot.dataset.rendered === "true") {
+          const canvas = slot.querySelector('.pdf-page-canvas');
+          const overlay = slot.querySelector('.pdf-page-overlay');
+          if (canvas) {
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+          }
+          if (overlay) {
+            const renderedScale = parseFloat(slot.dataset.renderedScale || String(activePdfScale));
+            if (renderedScale > 0) {
+              const ratio = newScale / renderedScale;
+              overlay.style.transformOrigin = '0 0';
+              overlay.style.transform = `scale(${ratio})`;
+            }
           }
         }
       }
@@ -2560,43 +2571,117 @@
             slot.dataset.rendered = "false";
           }
         }
-        const pagesToRefresh = [activePdfPage, activePdfPage - 1, activePdfPage + 1];
-        pagesToRefresh.forEach(p => {
+
+        // Ưu tiên render sắc nét đúng các trang đang hiển thị trong khung nhìn hiện tại
+        const cRect = viewerScrollEl.getBoundingClientRect();
+        const visiblePages = [];
+        for (let i = 0; i < cachedPdfSlotElements.length; i++) {
+          const r = cachedPdfSlotElements[i].getBoundingClientRect();
+          if (r.bottom >= cRect.top - 250 && r.top <= cRect.bottom + 250) {
+            visiblePages.push(i + 1);
+          }
+        }
+        if (visiblePages.length === 0) {
+          visiblePages.push(activePdfPage);
+        }
+        visiblePages.forEach(p => {
           if (p >= 1 && p <= activePdfInstance.numPages) {
             renderSinglePdfPageSlot(p, false);
           }
         });
-      }, 160);
+      }, 140);
+    }
+
+    function findAnchorElementForClientPoint(clientX, clientY) {
+      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+      if (fType === 'PDF' && activePdfInstance && !isRawTextMode && cachedPdfSlotElements.length > 0) {
+        let bestSlot = cachedPdfSlotElements[0];
+        let bestDist = Infinity;
+        for (let i = 0; i < cachedPdfSlotElements.length; i++) {
+          const slot = cachedPdfSlotElements[i];
+          const r = slot.getBoundingClientRect();
+          if (clientY >= r.top && clientY <= r.bottom && clientX >= r.left && clientX <= r.right) {
+            return { el: slot, rect: r, isPdfSlot: true };
+          }
+          const dy = clientY < r.top ? (r.top - clientY) : (clientY > r.bottom ? (clientY - r.bottom) : 0);
+          const dx = clientX < r.left ? (r.left - clientX) : (clientX > r.right ? (clientX - r.right) : 0);
+          const dist = Math.hypot(dx, dy);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestSlot = slot;
+          }
+        }
+        return { el: bestSlot, rect: bestSlot.getBoundingClientRect(), isPdfSlot: true };
+      }
+      const targetEl = isRawTextMode
+        ? document.getElementById('rawTextWrapper')
+        : document.getElementById('otherOriginalWrapper');
+      return { el: targetEl, rect: targetEl.getBoundingClientRect(), isPdfSlot: false };
     }
 
     window.zoomPdf = async (delta) => {
       const fType = (activeViewerDoc?.fileType || "").toUpperCase();
       if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
         const oldScale = activePdfScale;
-        const newScale = Math.max(0.35, Math.min(3.2, Number((oldScale + delta).toFixed(2))));
+        const newScale = Math.max(0.35, Math.min(3.5, Number((oldScale + delta).toFixed(2))));
         if (newScale === oldScale) return;
 
-        const centerX = viewerScrollEl.scrollLeft + viewerScrollEl.clientWidth * 0.5;
-        const centerY = viewerScrollEl.scrollTop + viewerScrollEl.clientHeight * 0.5;
-        const ratio = newScale / oldScale;
+        const cRect = viewerScrollEl.getBoundingClientRect();
+        const midClientX = cRect.left + cRect.width * 0.5;
+        const midClientY = cRect.top + cRect.height * 0.5;
+        const anchor = findAnchorElementForClientPoint(midClientX, midClientY);
+        const fracX = (midClientX - anchor.rect.left) / Math.max(1, anchor.rect.width);
+        const fracY = (midClientY - anchor.rect.top) / Math.max(1, anchor.rect.height);
 
         activePdfScale = newScale;
         applyLivePdfSlotsScale(newScale);
 
-        viewerScrollEl.scrollLeft = Math.max(0, centerX * ratio - viewerScrollEl.clientWidth * 0.5);
-        viewerScrollEl.scrollTop = Math.max(0, centerY * ratio - viewerScrollEl.clientHeight * 0.5);
+        const newRect = anchor.el.getBoundingClientRect();
+        const dx = (newRect.left + fracX * newRect.width) - midClientX;
+        const dy = (newRect.top + fracY * newRect.height) - midClientY;
+        viewerScrollEl.scrollLeft = Math.max(0, viewerScrollEl.scrollLeft + dx);
+        viewerScrollEl.scrollTop = Math.max(0, viewerScrollEl.scrollTop + dy);
+
         scheduleSharpPdfReRenderAtCurrentScale();
       } else {
-        activeDocZoom = Math.max(0.5, Math.min(2.8, Number((activeDocZoom + delta).toFixed(2))));
+        const cRect = viewerScrollEl.getBoundingClientRect();
+        const midClientX = cRect.left + cRect.width * 0.5;
+        const midClientY = cRect.top + cRect.height * 0.5;
+        const targetEl = isRawTextMode
+          ? document.getElementById('rawTextWrapper')
+          : document.getElementById('otherOriginalWrapper');
+        const oldRect = targetEl.getBoundingClientRect();
+        const fracX = (midClientX - oldRect.left) / Math.max(1, oldRect.width);
+        const fracY = (midClientY - oldRect.top) / Math.max(1, oldRect.height);
+
+        activeDocZoom = Math.max(0.5, Math.min(3.0, Number((activeDocZoom + delta).toFixed(2))));
         applyNonPdfZoomAndRotation();
+
+        const newRect = targetEl.getBoundingClientRect();
+        const dx = (newRect.left + fracX * newRect.width) - midClientX;
+        const dy = (newRect.top + fracY * newRect.height) - midClientY;
+        viewerScrollEl.scrollLeft = Math.max(0, viewerScrollEl.scrollLeft + dx);
+        viewerScrollEl.scrollTop = Math.max(0, viewerScrollEl.scrollTop + dy);
       }
     };
 
     window.resetViewerZoom = async () => {
       const fType = (activeViewerDoc?.fileType || "").toUpperCase();
       if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
+        const cRect = viewerScrollEl.getBoundingClientRect();
+        const midClientX = cRect.left + cRect.width * 0.5;
+        const midClientY = cRect.top + cRect.height * 0.5;
+        const anchor = findAnchorElementForClientPoint(midClientX, midClientY);
+        const fracY = (midClientY - anchor.rect.top) / Math.max(1, anchor.rect.height);
+
         activePdfScale = await computeOptimalInitialPdfScale(activePdfInstance, activeViewerRotation);
         applyLivePdfSlotsScale(activePdfScale);
+
+        const newRect = anchor.el.getBoundingClientRect();
+        const dy = (newRect.top + fracY * newRect.height) - midClientY;
+        viewerScrollEl.scrollLeft = 0;
+        viewerScrollEl.scrollTop = Math.max(0, viewerScrollEl.scrollTop + dy);
+
         scheduleSharpPdfReRenderAtCurrentScale();
       } else {
         activeDocZoom = 1.0;
@@ -2604,13 +2689,20 @@
       }
     };
 
-    // Xử lý cảm ứng Chụm 2 ngón tay (Pinch-to-Zoom) trực tiếp bên trong #viewerScrollContainer
+    // Xử lý cảm ứng Chụm/Tách 2 ngón tay (Pinch-to-Zoom) neo chặt theo đúng trang & điểm chạm dưới ngón tay
     let isPinchingDoc = false;
     let pinchStartDist = 0;
     let pinchStartScale = 1;
     let pinchLiveScale = 1;
-    let pinchDocX = 0;
-    let pinchDocY = 0;
+    let pinchAnchorEl = null;
+    let pinchAnchorIsPdf = false;
+    let pinchAnchorFracX = 0.5;
+    let pinchAnchorFracY = 0.5;
+    let pendingPinchDist = 0;
+    let pendingPinchMidX = 0;
+    let pendingPinchMidY = 0;
+    let pinchRafId = null;
+    let ignoreSingleTouchUntil = 0;
 
     function getTwoFingerDistance(touches) {
       const dx = touches[0].clientX - touches[1].clientX;
@@ -2618,66 +2710,114 @@
       return Math.hypot(dx, dy);
     }
 
-    viewerScrollEl.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        isPinchingDoc = true;
-        isProgrammaticScrolling = true;
-        pinchStartDist = Math.max(20, getTwoFingerDistance(e.touches));
+    function applyPendingPinchFrame() {
+      pinchRafId = null;
+      if (!isPinchingDoc || !pinchAnchorEl) return;
 
-        const fType = (activeViewerDoc?.fileType || "").toUpperCase();
-        pinchStartScale = (fType === 'PDF' && activePdfInstance && !isRawTextMode) ? activePdfScale : activeDocZoom;
-        pinchLiveScale = pinchStartScale;
-
-        const rect = viewerScrollEl.getBoundingClientRect();
-        const midX = ((e.touches[0].clientX + e.touches[1].clientX) * 0.5) - rect.left;
-        const midY = ((e.touches[0].clientY + e.touches[1].clientY) * 0.5) - rect.top;
-
-        pinchDocX = viewerScrollEl.scrollLeft + midX;
-        pinchDocY = viewerScrollEl.scrollTop + midY;
-      }
-    }, { passive: false });
-
-    viewerScrollEl.addEventListener('touchmove', (e) => {
-      if (!isPinchingDoc || e.touches.length !== 2) return;
-      e.preventDefault();
-
-      const curDist = getTwoFingerDistance(e.touches);
-      const scaleMultiplier = curDist / pinchStartDist;
-      const newScale = Math.max(0.35, Math.min(3.2, Number((pinchStartScale * scaleMultiplier).toFixed(2))));
+      const scaleMultiplier = pendingPinchDist / pinchStartDist;
+      const newScale = pinchAnchorIsPdf
+        ? Math.max(0.35, Math.min(3.5, Number((pinchStartScale * scaleMultiplier).toFixed(3))))
+        : Math.max(0.5, Math.min(3.0, Number((pinchStartScale * scaleMultiplier).toFixed(3))));
       pinchLiveScale = newScale;
 
-      const rect = viewerScrollEl.getBoundingClientRect();
-      const curMidX = ((e.touches[0].clientX + e.touches[1].clientX) * 0.5) - rect.left;
-      const curMidY = ((e.touches[0].clientY + e.touches[1].clientY) * 0.5) - rect.top;
-
-      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
-      if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
+      if (pinchAnchorIsPdf) {
         applyLivePdfSlotsScale(newScale);
       } else {
         activeDocZoom = newScale;
         applyNonPdfZoomAndRotation();
       }
 
-      const ratio = newScale / pinchStartScale;
-      viewerScrollEl.scrollLeft = Math.max(0, pinchDocX * ratio - curMidX);
-      viewerScrollEl.scrollTop = Math.max(0, pinchDocY * ratio - curMidY);
+      // Tính vị trí mới của điểm chạm trên trang và bù trừ scroll tức thì để điểm dưới ngón tay đứng yên
+      const newRect = pinchAnchorEl.getBoundingClientRect();
+      const pointNowClientX = newRect.left + pinchAnchorFracX * newRect.width;
+      const pointNowClientY = newRect.top + pinchAnchorFracY * newRect.height;
+
+      const deltaX = pointNowClientX - pendingPinchMidX;
+      const deltaY = pointNowClientY - pendingPinchMidY;
+
+      if (Math.abs(deltaX) > 0.25) {
+        viewerScrollEl.scrollLeft = Math.max(0, viewerScrollEl.scrollLeft + deltaX);
+      }
+      if (Math.abs(deltaY) > 0.25) {
+        viewerScrollEl.scrollTop = Math.max(0, viewerScrollEl.scrollTop + deltaY);
+      }
+    }
+
+    viewerScrollEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        ignoreSingleTouchUntil = 0;
+        isPinchingDoc = true;
+        isProgrammaticScrolling = true;
+        if (pinchRafId) {
+          cancelAnimationFrame(pinchRafId);
+          pinchRafId = null;
+        }
+
+        pinchStartDist = Math.max(20, getTwoFingerDistance(e.touches));
+        const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+        pinchStartScale = (fType === 'PDF' && activePdfInstance && !isRawTextMode) ? activePdfScale : activeDocZoom;
+        pinchLiveScale = pinchStartScale;
+
+        const midClientX = (e.touches[0].clientX + e.touches[1].clientX) * 0.5;
+        const midClientY = (e.touches[0].clientY + e.touches[1].clientY) * 0.5;
+        const anchor = findAnchorElementForClientPoint(midClientX, midClientY);
+
+        pinchAnchorEl = anchor.el;
+        pinchAnchorIsPdf = anchor.isPdfSlot;
+        pinchAnchorFracX = (midClientX - anchor.rect.left) / Math.max(1, anchor.rect.width);
+        pinchAnchorFracY = (midClientY - anchor.rect.top) / Math.max(1, anchor.rect.height);
+
+        pendingPinchDist = pinchStartDist;
+        pendingPinchMidX = midClientX;
+        pendingPinchMidY = midClientY;
+      }
+    }, { passive: false });
+
+    viewerScrollEl.addEventListener('touchmove', (e) => {
+      if (isPinchingDoc && e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        pendingPinchDist = Math.max(20, getTwoFingerDistance(e.touches));
+        pendingPinchMidX = (e.touches[0].clientX + e.touches[1].clientX) * 0.5;
+        pendingPinchMidY = (e.touches[0].clientY + e.touches[1].clientY) * 0.5;
+
+        if (!pinchRafId) {
+          pinchRafId = requestAnimationFrame(applyPendingPinchFrame);
+        }
+        return;
+      }
+
+      // Chặn cú trượt nhầm trong 150ms khi người dùng vừa nhấc 1 ngón trước ngón còn lại
+      if (e.touches.length === 1 && Date.now() < ignoreSingleTouchUntil) {
+        if (e.cancelable) e.preventDefault();
+      }
     }, { passive: false });
 
     const finishPinchGesture = (e) => {
       if (!isPinchingDoc) return;
       if (e.touches && e.touches.length >= 2) return;
-      isPinchingDoc = false;
 
-      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
-      if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
-        activePdfScale = pinchLiveScale;
+      if (pinchRafId) {
+        cancelAnimationFrame(pinchRafId);
+        applyPendingPinchFrame();
+      }
+
+      isPinchingDoc = false;
+      ignoreSingleTouchUntil = (e.touches && e.touches.length === 1) ? (Date.now() + 160) : 0;
+
+      if (pinchAnchorIsPdf && activePdfInstance && !isRawTextMode) {
+        activePdfScale = Number(pinchLiveScale.toFixed(2));
+        if (pinchAnchorEl && pinchAnchorEl.dataset.pageNum) {
+          const anchorPageNum = parseInt(pinchAnchorEl.dataset.pageNum, 10);
+          if (!isNaN(anchorPageNum)) updateActivePageIndicators(anchorPageNum);
+        }
         scheduleSharpPdfReRenderAtCurrentScale();
       }
 
+      pinchAnchorEl = null;
       setTimeout(() => {
         isProgrammaticScrolling = false;
-      }, 150);
+      }, 180);
     };
 
     viewerScrollEl.addEventListener('touchend', finishPinchGesture);
@@ -2982,8 +3122,17 @@
         const displayW = Math.round(unitVp.width * activePdfScale);
         const displayH = Math.round(unitVp.height * activePdfScale);
 
+        const oldSlotHeight = slotEl.offsetHeight;
+        const cRectBefore = viewerScrollEl.getBoundingClientRect();
+        const slotRectBefore = slotEl.getBoundingClientRect();
+        const isAboveViewport = slotRectBefore.bottom <= cRectBefore.top + 2;
+
         slotEl.style.width = `${displayW}px`;
         slotEl.style.height = `${displayH}px`;
+
+        if (isAboveViewport && Math.abs(displayH - oldSlotHeight) > 1) {
+          viewerScrollEl.scrollTop += (displayH - oldSlotHeight);
+        }
 
         canvas.width = offCanvas.width;
         canvas.height = offCanvas.height;
@@ -3304,7 +3453,7 @@
       const sideBySideBtn = document.getElementById('sideBySideBtn');
       const switchModeBtn = document.getElementById('switchModeBtn');
 
-      otherOriginalWrapper.style.transform = 'rotate(0deg)';
+      otherOriginalWrapper.style.transform = '';
       otherOriginalWrapper.style.zoom = 1;
       rawTextWrapper.style.zoom = 1;
 
@@ -3566,72 +3715,4 @@
 
       isRawTextMode = !isRawTextMode;
       if (isRawTextMode) {
-        pdfCanvasWrapper.classList.add('hidden');
-        pdfCanvasWrapper.classList.remove('flex');
-        otherOriginalWrapper.classList.add('hidden');
-        rawTextWrapper.classList.remove('hidden');
-        switchBtn.textContent = "Trang Gốc";
-        document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
-        scrollToRawPageAnchor(activePdfPage);
-      } else {
-        rawTextWrapper.classList.add('hidden');
-        if (fType === 'PDF' && activePdfInstance) {
-          pdfCanvasWrapper.classList.remove('hidden');
-          pdfCanvasWrapper.classList.add('flex');
-          document.getElementById('pdfZoomLabel').textContent = `${Math.round(activePdfScale * 100)}%`;
-          const curSlot = document.getElementById(`pdf-page-slot-${activePdfPage}`);
-          if (curSlot) curSlot.scrollIntoView({ behavior: 'auto', block: 'start' });
-        } else {
-          otherOriginalWrapper.classList.remove('hidden');
-          document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
-        }
-        switchBtn.textContent = "Văn bản";
-      }
-    };
-
-    window.deleteDocument = async (id) => {
-      if (!isAdmin()) return;
-      const item = allDocuments.find(x => x.id === id);
-      if (!item) return;
-      if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn tài liệu "${item.title}" không?`)) return;
-
-      try {
-        for (const docId of (item.allDocIds || [id])) {
-          await deleteDoc(doc(db, "tai_lieu_trien_khai", docId));
-        }
-        if (item.docGroupId) {
-          const snap = await getDocs(query(fileChunksColRef, where("docGroupId", "==", item.docGroupId)));
-          for (const chunkDoc of snap.docs) {
-            await deleteDoc(doc(db, "tai_lieu_file_chunks", chunkDoc.id));
-          }
-          binaryCache.delete(item.docGroupId);
-          pdfDocumentCache.delete(item.docGroupId);
-        }
-        await loadDocuments();
-      } catch (err) {
-        alert("Lỗi khi xóa: " + err.message);
-      }
-    };
-
-    applyRolePermissionsUI();
-    loadDocuments();
-  </script>
-</body>
-</html>
-
-Tóm tắt các điểm đã sửa cho ô highlight PDF (renderSinglePdfPageSlot):
-
-1.  Đo tỷ lệ bề rộng chữ thực tế theo font (hlMeasureCtx.measureText): Thay cho
-    cách chia đều theo số ký tự cũ, loại bỏ hoàn toàn hiện tượng bị đẩy lệch
-    sang trái (c phẫu thu) hoặc hụt đuôi (ngự).
-2.  Đồng bộ tách riêng map nfcCharToItemMap & asciiCharToItemMap: Chuẩn hóa NFC
-    cho từng textItem và tách riêng bảng ánh xạ có dấu / không dấu để không bao
-    giờ bị lệch vị trí khi tìm từ khóa.
-3.  Gộp các mảnh cùng 1 từ khóa trên cùng dòng: Nếu PDF tách cụm từ (ví dụ
-    "phẫu" + " thuật") thành nhiều textItem, hệ thống gộp thành 1 khung liền
-    mạch duy nhất.
-4.  Căn cân đối theo baseline & tăng +10% chiều rộng, +10% chiều cao: Lấy khung
-    chữ thực tế (0.86em trên baseline đến 0.24em dưới baseline để ôm trọn cả dấu
-    mũ lẫn chân chữ g, ậ, ự), mở rộng đều 10% cả ngang lẫn dọc quanh tâm chữ, và
-    bù riêng 2px viền border-box ra bên ngoài để từ khóa nằm trọn và cân đối bên
-    trong ô.
+        pdfCanvas
