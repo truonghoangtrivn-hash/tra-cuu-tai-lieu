@@ -1,6 +1,10 @@
-Dưới đây là file index.html hoàn chỉnh đã điều chỉnh lại toàn bộ cơ chế phóng
-to/thu nhỏ trên điện thoại để thao tác chụm/tách 2 ngón tay luôn mượt mà và bám
-chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
+Xin lỗi bạn! Tin nhắn trước bị cắt mất vài dòng cuối của thẻ <script> nên trình
+duyệt báo lỗi cú pháp JS và không chạy hàm đăng nhập.
+
+Dưới đây là toàn bộ file index.html đầy đủ 100% từ đầu tới cuối (đã kiểm tra đầy
+đủ phần đóng </script></body></html>, giữ nguyên toàn bộ các bản sửa trước đó
+gồm: danh sách tài liệu theo thư mục, tỷ lệ trang dọc/ngang, ô highlight +10%
+chuẩn xác và phóng to/thu nhỏ bám đúng ngón tay trên điện thoại):
 
 <!DOCTYPE html>
 <html lang="vi">
@@ -28,7 +32,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-    /* Thanh kéo ngang & dọc nổi bật trong khung Xem Tài Liệu Gốc + Tắt scroll anchoring để không bị nhảy trang khi phóng to */
     #viewerScrollContainer {
       touch-action: pan-x pan-y;
       overscroll-behavior: contain;
@@ -50,7 +53,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     #viewerScrollContainer::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
     #viewerScrollContainer::-webkit-scrollbar-corner { background: #0f172a; }
 
-    /* Khóa cố định thanh công cụ không bao giờ bị phóng to theo thao tác chạm */
     .viewer-fixed-bar {
       touch-action: manipulation;
       user-select: none;
@@ -257,7 +259,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
           </div>
         </div>
 
-        <!-- 2 Ô Tìm kiếm Từ khóa Chính xác 100% + Linh hoạt số -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">
@@ -283,12 +284,11 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
 
       <div id="errorBox" class="hidden bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs space-y-1"></div>
 
-      <!-- Vùng hiển thị danh sách tài liệu khớp hoặc danh sách tài liệu theo thư mục đang chọn -->
       <div id="resultsList" class="space-y-2.5"></div>
     </section>
   </main>
 
-  <!-- MODAL 1: ĐĂNG TẢI TÀI LIỆU MỚI (CHỈ DÀNH CHO ADMIN) -->
+  <!-- MODAL 1: ĐĂNG TẢI TÀI LIỆU MỚI -->
   <div id="uploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[1px] hidden items-center justify-center p-3 sm:p-4 z-40">
     <div class="bg-white rounded-xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
       <div class="bg-slate-900 text-white px-4 sm:px-5 py-3.5 flex justify-between items-center shrink-0">
@@ -340,7 +340,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     </div>
   </div>
 
-  <!-- MODAL 2: CHUYỂN THƯ MỤC (CHỈ DÀNH CHO ADMIN) -->
+  <!-- MODAL 2: CHUYỂN THƯ MỤC -->
   <div id="moveFolderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[1px] hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-xl max-w-md w-full p-5 shadow-2xl border border-slate-200 space-y-4">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -368,29 +368,23 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     </div>
   </div>
 
-  <!-- MODAL 3: TRÌNH XEM NGUYÊN TRẠNG TÀI LIỆU GỐC (THANH CÔNG CỤ CỐ ĐỊNH TUYỆT ĐỐI + CHỤM 2 NGÓN TAY PHÓNG TO RIÊNG VĂN BẢN) -->
+  <!-- MODAL 3: TRÌNH XEM NGUYÊN TRẠNG TÀI LIỆU GỐC -->
   <div id="originalViewerModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-[2px] hidden items-center justify-center p-0 sm:p-3 z-50">
     <div class="bg-slate-900 sm:rounded-xl max-w-[1440px] w-full h-full sm:h-[96vh] flex flex-col shadow-2xl overflow-hidden border-0 sm:border sm:border-slate-700">
       
-      <!-- Thanh Header Cố định -->
       <div class="viewer-fixed-bar bg-slate-950 text-white px-2.5 sm:px-4 py-2 lg:py-0 lg:h-14 flex flex-col sm:flex-row lg:grid lg:grid-cols-12 sm:items-center justify-between gap-2 border-b border-slate-800 shrink-0 z-20">
-        
-        <!-- Cột Trái: Loại file & Tên tài liệu -->
         <div class="lg:col-span-4 flex items-center gap-2 min-w-0 w-full sm:w-auto sm:flex-1 pr-1 overflow-hidden">
           <span id="viewerBadge" class="text-[10px] font-extrabold bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded shrink-0">BẢN GỐC</span>
           <h3 id="viewerTitle" class="font-bold text-xs sm:text-sm text-slate-100 truncate" title="">Tên tài liệu</h3>
         </div>
 
-        <!-- Cụm nút Phóng to / Thu nhỏ & Chức năng -->
         <div class="lg:col-span-8 flex items-center justify-between sm:justify-end lg:justify-between gap-1.5 w-full sm:w-auto shrink-0">
-          <!-- Cụm nút Phóng to / Thu nhỏ -->
           <div id="pdfControls" class="hidden items-center gap-1 bg-slate-900 px-1.5 py-0.5 rounded-lg text-[11px] sm:text-xs border border-slate-700 shrink-0 whitespace-nowrap lg:mx-auto">
             <button type="button" onclick="window.zoomPdf(-0.15)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded font-bold flex items-center justify-center cursor-pointer select-none" title="Thu nhỏ tài liệu">−</button>
             <button type="button" id="pdfZoomLabel" onclick="window.resetViewerZoom()" class="w-11 sm:w-12 h-7 text-center font-semibold text-amber-300 hover:text-white hover:bg-slate-800 rounded transition select-none cursor-pointer" title="Nhấn để đưa về tỷ lệ vừa màn hình">100%</button>
             <button type="button" onclick="window.zoomPdf(0.15)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded font-bold flex items-center justify-center cursor-pointer select-none" title="Phóng to tài liệu">+</button>
           </div>
 
-          <!-- Các nút chế độ & đóng -->
           <div class="flex items-center justify-end gap-1 sm:gap-1.5 shrink-0 ml-auto lg:ml-0">
             <button type="button" id="sideBySideBtn" onclick="window.toggleSideBySideEditor()" class="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer" title="Chia đôi màn hình: Xem Trang Gốc & Sửa lỗi chính tả OCR">
               📖 <span class="hidden sm:inline">Song song &</span> Sửa OCR
@@ -406,7 +400,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         </div>
       </div>
 
-      <!-- Thanh phụ dưới Header Cố định -->
       <div id="matchedPagesBar" class="viewer-fixed-bar hidden bg-slate-900 border-b border-slate-800 px-2.5 sm:px-4 py-1.5 text-xs text-slate-200 flex items-center justify-between gap-2 shrink-0 z-20">
         <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5">
           <span class="font-bold shrink-0 text-amber-400 text-[11px] sm:text-xs">Trang khớp:</span>
@@ -415,19 +408,14 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         <span id="pageHighlightCountBadge" class="bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px] sm:text-[11px] shrink-0 whitespace-nowrap hidden">0 vị trí</span>
       </div>
 
-      <!-- THÂN TRÌNH XEM -->
       <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        
         <div class="flex-1 overflow-auto bg-slate-800/90 p-1.5 sm:p-5 relative" id="viewerScrollContainer">
           <div id="viewerLoading" class="hidden my-20 mx-auto text-center text-white space-y-3 max-w-md bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
             <div class="inline-block w-9 h-9 border-4 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
             <p id="viewerLoadingText" class="text-sm font-medium text-slate-200">Đang tải dữ liệu tài liệu gốc...</p>
           </div>
 
-          <!-- Khung chứa danh sách toàn bộ các trang PDF xếp dọc liên tục -->
           <div id="pdfCanvasWrapper" class="hidden flex-col items-center gap-3 sm:gap-6 w-fit mx-auto"></div>
-
-          <!-- Khung hiển thị Excel / Word / Ảnh -->
           <div id="otherOriginalWrapper" class="hidden bg-white text-slate-800 rounded-lg sm:rounded-xl shadow-2xl w-fit min-w-full p-3 sm:p-6 h-fit mx-auto orig-doc-view transition-transform duration-150"></div>
           <div id="rawTextWrapper" class="hidden bg-white text-slate-800 rounded-lg sm:rounded-xl shadow-2xl max-w-5xl w-full p-4 sm:p-8 h-fit mx-auto text-xs sm:text-sm whitespace-pre-wrap leading-relaxed"></div>
         </div>
@@ -449,7 +437,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
             <textarea id="sideBySideTextarea" class="w-full flex-1 bg-white text-slate-900 rounded-lg p-3 sm:p-4 text-base sm:text-sm leading-relaxed border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-400 font-sans resize-none" placeholder="Nội dung văn bản của trang này..."></textarea>
           </div>
         </aside>
-
       </div>
     </div>
   </div>
@@ -459,7 +446,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { initializeFirestore, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Hàm đọc/ghi bộ nhớ an toàn trên mọi trình duyệt di động & Zalo WebView
     function safeGetSession(key) {
       try { return sessionStorage.getItem(key); } catch (e) { return null; }
     }
@@ -495,7 +481,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
 
     const MAX_TEXT_CHARS = 600000;
     const MAX_BASE64_CHARS = 750000;
-
     const BM25_K1 = 1.5;
     const BM25_B = 0.75;
 
@@ -511,7 +496,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     let isMobileTreeCollapsed = false;
 
     let currentSearchMatchedDocsMap = new Map();
-
     let currentFileType = "TEXT";
     let currentFileName = "";
     let currentFileSize = 0;
@@ -542,7 +526,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
     let pdfUnitWidth = 595;
     let pdfUnitHeight = 842;
 
-    // Canvas ẩn chuyên đo tỷ lệ độ rộng ký tự thực tế của font để đặt khung highlight chuẩn xác
     const hlMeasureCanvas = document.createElement('canvas');
     const hlMeasureCtx = hlMeasureCanvas.getContext('2d');
 
@@ -612,9 +595,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       return Math.min(2.25, Math.max(1.5, dpr));
     }
 
-    // =========================================================================
-    // 0. QUẢN LÝ ĐĂNG NHẬP & PHÂN QUYỀN (ADMIN / USER)
-    // =========================================================================
+    // 0. QUẢN LÝ ĐĂNG NHẬP & PHÂN QUYỀN
     let currentUserRole = safeGetSession('tailieu_auth_role_v1') || null;
 
     function isAdmin() {
@@ -718,10 +699,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       }
     });
 
-    // =========================================================================
-    // 1. CHUYỂN MÃ TCVN3 / VNI AN TOÀN TUYỆT ĐỐI & CHUẨN HÓA VĂN BẢN EXCEL/WORD/PDF
-    // =========================================================================
-
+    // 1. CHUYỂN MÃ TCVN3 / VNI & CHUẨN HÓA VĂN BẢN
     const TCVN3_MAP = {
       '¸':'á','µ':'à','¶':'ả','·':'ã','¹':'ạ',
       '¨':'ă','¾':'ắ','»':'ằ','¼':'ẳ','½':'ẵ','Æ':'ặ',
@@ -782,7 +760,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         .replace(/[\u00A0\t]+/g, ' ');
 
       t = convertLegacyVietnameseEncoding(t);
-
       t = t.replace(/\b(tritruong[_\s]*truong\s*hoang\s*tri|truong\s*hoang\s*tri|tritruong|uong\s*hoang\s*tri|ruong\s*hoang\s*tri)\b/gi, ' ');
 
       const ocrFixes = [
@@ -852,10 +829,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       return (str || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    // =========================================================================
-    // 2. BỘ ĐỐI SÁNH CỤM TỪ CHÍNH XÁC 100% + LINH HOẠT SỐ
-    // =========================================================================
-
+    // 2. BỘ ĐỐI SÁNH CỤM TỪ CHÍNH XÁC + LINH HOẠT SỐ
     function buildFlexibleNumberGroupPattern(digitsStr) {
       const stripped = digitsStr.replace(/^0+/, '') || '0';
       if (stripped === '0') return '0+';
@@ -1636,10 +1610,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       if (docIdPendingMove && targetFolder) executeMoveDocument(docIdPendingMove, targetFolder);
     });
 
-    // =========================================================================
-    // 3. BỘ LỌC TIỀN XỬ LÝ ẢNH 3 BƯỚC + KHỞI TẠO LÕI TESSDATA_BEST CHUYÊN BIỆT TIẾNG VIỆT ('vie')
-    // =========================================================================
-
+    // 3. BỘ LỌC TIỀN XỬ LÝ ẢNH + OCR TESSDATA_BEST ('vie')
     function applyAutomaticOptimalFilterToCanvas(canvas) {
       const w = canvas.width;
       const h = canvas.height;
@@ -1648,18 +1619,12 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       const ctx = canvas.getContext('2d');
       const imgData = ctx.getImageData(0, 0, w, h);
       const data = imgData.data;
-
       const grayBuf = new Float32Array(w * h);
 
       for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        const maxC = Math.max(r, g, b);
-        const minC = Math.min(r, g, b);
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
         const saturation = maxC - minC;
-
         const isRedStamp = (r > 105 && (r - g) > 38 && (r - b) > 38);
         const isColorWatermark = (saturation > 55 && maxC > 140);
 
@@ -1677,34 +1642,21 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         const rowOffset = y * w;
         for (let x = 1; x < w - 1; x++) {
           const idx = rowOffset + x;
-          const center = grayBuf[idx];
-          const top = grayBuf[idx - w];
-          const bottom = grayBuf[idx + w];
-          const left = grayBuf[idx - 1];
-          const right = grayBuf[idx + 1];
-
-          const val = center * 3.4 - 0.6 * (top + bottom + left + right);
+          const val = grayBuf[idx] * 3.4 - 0.6 * (grayBuf[idx - w] + grayBuf[idx + w] + grayBuf[idx - 1] + grayBuf[idx + 1]);
           sharpenedBuf[idx] = val < 0 ? 0 : (val > 255 ? 255 : val);
         }
       }
 
-      const contrast = 35;
-      const threshold = 190;
+      const contrast = 35, threshold = 190;
       const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
       for (let i = 0, p = 0; i < data.length; i += 4, p++) {
         let gray = contrastFactor * (sharpenedBuf[p] - 128) + 128;
         gray = Math.max(0, Math.min(255, gray));
-
         let val;
-        if (gray >= threshold) {
-          val = 255;
-        } else if (gray < threshold - 55) {
-          val = Math.max(0, (gray - 25) * 0.65);
-        } else {
-          val = ((gray - (threshold - 55)) / 55) * 255;
-        }
-
+        if (gray >= threshold) val = 255;
+        else if (gray < threshold - 55) val = Math.max(0, (gray - 25) * 0.65);
+        else val = ((gray - (threshold - 55)) / 55) * 255;
         data[i] = data[i + 1] = data[i + 2] = val;
       }
 
@@ -1720,17 +1672,9 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         });
       } catch (err) {
         console.warn("Không thể tải gói 4.0.0_best, tự động chuyển sang gói vie tiêu chuẩn:", err);
-        worker = await Tesseract.createWorker('vie', 1, {
-          logger: onLogger
-        });
+        worker = await Tesseract.createWorker('vie', 1, { logger: onLogger });
       }
-
-      try {
-        await worker.setParameters({
-          preserve_interword_spaces: '1'
-        });
-      } catch (e) {}
-
+      try { await worker.setParameters({ preserve_interword_spaces: '1' }); } catch (e) {}
       return worker;
     }
 
@@ -1776,7 +1720,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         const reconstructed = reconstructTextFromPdfItems(content.items || []);
-
         const realCharCount = reconstructed.replace(/\s+/g, '').length;
 
         if (realCharCount >= 65) {
@@ -1804,14 +1747,11 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
 
           const ret = await ocrWorker.recognize(imgDataUrl);
           const cleanedOcr = cleanAndNormalizeVietnameseText(ret.data.text || "");
-
           fullText += `[Trang ${i}] ` + cleanedOcr.trim() + "\n\n";
         }
       }
 
-      if (ocrWorker) {
-        await ocrWorker.terminate();
-      }
+      if (ocrWorker) await ocrWorker.terminate();
       return fullText;
     }
 
@@ -1999,11 +1939,8 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       }
 
       if (!title) {
-        if (currentFileName) {
-          title = currentFileName.replace(/\.[^/.]+$/, "");
-        } else {
-          title = "Tài liệu " + new Date().toLocaleDateString('vi-VN');
-        }
+        if (currentFileName) title = currentFileName.replace(/\.[^/.]+$/, "");
+        else title = "Tài liệu " + new Date().toLocaleDateString('vi-VN');
       }
 
       saveBtn.disabled = true;
@@ -2078,10 +2015,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       }
     });
 
-    // =========================================================================
-    // 4. BỘ TÌM KIẾM 2 Ô CHÍNH XÁC + LINH HOẠT SỐ & HIỂN THỊ KẾT QUẢ TỐI ƯU MOBILE/DESKTOP
-    // =========================================================================
-
+    // 4. BỘ TÌM KIẾM & HIỂN THỊ KẾT QUẢ
     window.clearSearchBox = (boxNum) => {
       if (boxNum === 1 || boxNum === 0) searchInput1.value = "";
       if (boxNum === 2 || boxNum === 0) searchInput2.value = "";
@@ -2217,11 +2151,8 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
             for (let i = 0; i < pages.length; i++) {
               const exactHit = matcher1 ? (pHitsList[i].h1.length > 0) : (pHitsList[i].h2.length > 0);
               const fuzzyHit = matcher1 ? (pHitsList[i].fuzzy1.length > 0) : (pHitsList[i].fuzzy2.length > 0);
-              if (exactHit) {
-                validExactPages.set(i, { isAdjacent: false });
-              } else if (fuzzyHit) {
-                validFuzzyPages.set(i, { isAdjacent: false });
-              }
+              if (exactHit) validExactPages.set(i, { isAdjacent: false });
+              else if (fuzzyHit) validFuzzyPages.set(i, { isAdjacent: false });
             }
           }
 
@@ -2442,10 +2373,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       resultsList.innerHTML = html;
     }
 
-    // =========================================================================
-    // 5. TRÌNH XEM TÀI LIỆU GỐC + CHỤM 2 NGÓN TAY (PINCH-TO-ZOOM) BÁM ĐÚNG VỊ TRÍ NGÓN TAY
-    // =========================================================================
-
+    // 5. TRÌNH XEM TÀI LIỆU GỐC + PINCH-TO-ZOOM BÁM NGÓN TAY
     function revokeActiveViewerBlobUrls() {
       while (activeViewerBlobUrls.length > 0) {
         const u = activeViewerBlobUrls.pop();
@@ -2572,7 +2500,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
           }
         }
 
-        // Ưu tiên render sắc nét đúng các trang đang hiển thị trong khung nhìn hiện tại
         const cRect = viewerScrollEl.getBoundingClientRect();
         const visiblePages = [];
         for (let i = 0; i < cachedPdfSlotElements.length; i++) {
@@ -2581,9 +2508,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
             visiblePages.push(i + 1);
           }
         }
-        if (visiblePages.length === 0) {
-          visiblePages.push(activePdfPage);
-        }
+        if (visiblePages.length === 0) visiblePages.push(activePdfPage);
         visiblePages.forEach(p => {
           if (p >= 1 && p <= activePdfInstance.numPages) {
             renderSinglePdfPageSlot(p, false);
@@ -2689,7 +2614,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       }
     };
 
-    // Xử lý cảm ứng Chụm/Tách 2 ngón tay (Pinch-to-Zoom) neo chặt theo đúng trang & điểm chạm dưới ngón tay
     let isPinchingDoc = false;
     let pinchStartDist = 0;
     let pinchStartScale = 1;
@@ -2727,7 +2651,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         applyNonPdfZoomAndRotation();
       }
 
-      // Tính vị trí mới của điểm chạm trên trang và bù trừ scroll tức thì để điểm dưới ngón tay đứng yên
       const newRect = pinchAnchorEl.getBoundingClientRect();
       const pointNowClientX = newRect.left + pinchAnchorFracX * newRect.width;
       const pointNowClientY = newRect.top + pinchAnchorFracY * newRect.height;
@@ -2787,7 +2710,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         return;
       }
 
-      // Chặn cú trượt nhầm trong 150ms khi người dùng vừa nhấc 1 ngón trước ngón còn lại
       if (e.touches.length === 1 && Date.now() < ignoreSingleTouchUntil) {
         if (e.cancelable) e.preventDefault();
       }
@@ -2929,9 +2851,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         if (hlCount !== null && hlCount > 0) {
           countBadge.textContent = `Trang ${activePdfPage}: ${hlCount} vị trí`;
         } else if (hlCount === 0) {
-          countBadge.textContent = isAdmin()
-            ? `Trang ${activePdfPage}: Ảnh OCR`
-            : `Trang ${activePdfPage}: Bản Scan`;
+          countBadge.textContent = isAdmin() ? `Trang ${activePdfPage}: Ảnh OCR` : `Trang ${activePdfPage}: Bản Scan`;
         } else {
           countBadge.textContent = `Trang ${activePdfPage}`;
         }
@@ -2958,14 +2878,10 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       const numPages = activePdfInstance.numPages;
       const firstPage = await activePdfInstance.getPage(1);
       const baseRot = firstPage.rotate || 0;
-      const unitVp = firstPage.getViewport({
-        scale: 1.0,
-        rotation: (baseRot + activeViewerRotation) % 360
-      });
+      const unitVp = firstPage.getViewport({ scale: 1.0, rotation: (baseRot + activeViewerRotation) % 360 });
       pdfUnitWidth = unitVp.width;
       pdfUnitHeight = unitVp.height;
 
-      // Đo kích thước từng trang (nếu <= 100 trang) để không bị lệch khung hay giật cuộn khi file có lẫn trang dọc & ngang
       const perPageUnitSizes = new Array(numPages + 1).fill(null);
       perPageUnitSizes[1] = { w: pdfUnitWidth, h: pdfUnitHeight };
 
@@ -3068,9 +2984,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       }
 
       if (slotEl.dataset.rendering === "true") {
-        if (autoScrollToFirstHighlight) {
-          slotEl.dataset.pendingScrollHl = "true";
-        }
+        if (autoScrollToFirstHighlight) slotEl.dataset.pendingScrollHl = "true";
         return;
       }
 
@@ -3082,33 +2996,19 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         const baseRotation = page.rotate || 0;
         const rotDeg = (baseRotation + activeViewerRotation) % 360;
 
-        // Lấy kích thước thực tế riêng của từng trang (đảm bảo trang dọc & trang ngang luôn đúng tỷ lệ)
-        const unitVp = page.getViewport({
-          scale: 1.0,
-          rotation: rotDeg
-        });
+        const unitVp = page.getViewport({ scale: 1.0, rotation: rotDeg });
         slotEl.dataset.unitW = String(unitVp.width);
         slotEl.dataset.unitH = String(unitVp.height);
 
-        const cssViewport = page.getViewport({
-          scale: renderScaleSnapshot,
-          rotation: rotDeg
-        });
-
+        const cssViewport = page.getViewport({ scale: renderScaleSnapshot, rotation: rotDeg });
         const hiDpiRatio = getHiDpiCanvasSupersampleRatio(renderScaleSnapshot);
-        const renderViewport = page.getViewport({
-          scale: renderScaleSnapshot * hiDpiRatio,
-          rotation: rotDeg
-        });
+        const renderViewport = page.getViewport({ scale: renderScaleSnapshot * hiDpiRatio, rotation: rotDeg });
 
         const offCanvas = document.createElement('canvas');
         offCanvas.width = Math.round(renderViewport.width);
         offCanvas.height = Math.round(renderViewport.height);
 
-        const renderTask = page.render({
-          canvasContext: offCanvas.getContext('2d'),
-          viewport: renderViewport
-        });
+        const renderTask = page.render({ canvasContext: offCanvas.getContext('2d'), viewport: renderViewport });
         pdfActiveRenderTasks.set(pageNum, renderTask);
         await renderTask.promise;
         pdfActiveRenderTasks.delete(pageNum);
@@ -3254,7 +3154,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
               }
             }
 
-            // Tính khung từng phần theo tỷ lệ độ rộng ký tự thực tế (Canvas measureText), rồi gộp các phần trên cùng 1 dòng
             const rawRects = [];
             itemSegments.forEach((seg, itemIdx) => {
               const item = items[itemIdx];
@@ -3283,8 +3182,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
 
               const subX = tx[4] + fullItemWidth * startRatio;
               const subWidth = Math.max(4, fullItemWidth * (endRatio - startRatio));
-
-              // Căn hộp dọc cân đối quanh baseline (tx[5]): phía trên ~0.86em (dấu mũ), phía dưới ~0.24em (chân g, p, q, ậ, ự)
               const tightTop = tx[5] - fontHeight * 0.86;
               const tightBottom = tx[5] + fontHeight * 0.24;
 
@@ -3298,7 +3195,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
               });
             });
 
-            // Gộp các mảnh cùng từ khóa trên cùng một dòng (trường hợp PDF tách 1 cụm từ thành nhiều textItem)
             const mergedRects = [];
             for (const r of rawRects) {
               const prev = mergedRects[mergedRects.length - 1];
@@ -3316,7 +3212,6 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
               }
             }
 
-            // Mở rộng cân đối +10% chiều rộng và +10% chiều cao, bù 2px viền (border-box) ra ngoài để không ăn vào chữ
             const BORDER_PX = 2;
             mergedRects.forEach(rect => {
               const baseW = Math.max(8, rect.right - rect.left);
@@ -3466,9 +3361,7 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
       if (isAdmin()) {
         sideBySideBtn.classList.remove('hidden');
         switchModeBtn.classList.remove('hidden');
-        if (isSideBySideOpen) {
-          syncSideBySideTextareaWithCurrentPage();
-        }
+        if (isSideBySideOpen) syncSideBySideTextareaWithCurrentPage();
       } else {
         sideBySideBtn.classList.add('hidden');
         switchModeBtn.classList.add('hidden');
@@ -3663,11 +3556,8 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
         const pageDiv = document.getElementById(`raw-page-${pageNum}`);
         if (pageDiv) {
           const firstMarkInPage = pageDiv.querySelector('mark');
-          if (firstMarkInPage) {
-            firstMarkInPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          } else {
-            pageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          if (firstMarkInPage) firstMarkInPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          else pageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else if (wrapper) {
           const anyMark = wrapper.querySelector('mark');
           if (anyMark) anyMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3715,4 +3605,63 @@ chặt đúng vào vị trí/trang ngay dưới ngón tay bạn:
 
       isRawTextMode = !isRawTextMode;
       if (isRawTextMode) {
-        pdfCanvas
+        pdfCanvasWrapper.classList.add('hidden');
+        pdfCanvasWrapper.classList.remove('flex');
+        otherOriginalWrapper.classList.add('hidden');
+        rawTextWrapper.classList.remove('hidden');
+        switchBtn.textContent = "Trang Gốc";
+        document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
+        scrollToRawPageAnchor(activePdfPage);
+      } else {
+        rawTextWrapper.classList.add('hidden');
+        if (fType === 'PDF' && activePdfInstance) {
+          pdfCanvasWrapper.classList.remove('hidden');
+          pdfCanvasWrapper.classList.add('flex');
+          document.getElementById('pdfZoomLabel').textContent = `${Math.round(activePdfScale * 100)}%`;
+          const curSlot = document.getElementById(`pdf-page-slot-${activePdfPage}`);
+          if (curSlot) curSlot.scrollIntoView({ behavior: 'auto', block: 'start' });
+        } else {
+          otherOriginalWrapper.classList.remove('hidden');
+          document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
+        }
+        switchBtn.textContent = "Văn bản";
+      }
+    };
+
+    window.deleteDocument = async (id) => {
+      if (!isAdmin()) return;
+      const item = allDocuments.find(x => x.id === id);
+      if (!item) return;
+      if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn tài liệu "${item.title}" không?`)) return;
+
+      try {
+        for (const docId of (item.allDocIds || [id])) {
+          await deleteDoc(doc(db, "tai_lieu_trien_khai", docId));
+        }
+        if (item.docGroupId) {
+          const snap = await getDocs(query(fileChunksColRef, where("docGroupId", "==", item.docGroupId)));
+          for (const chunkDoc of snap.docs) {
+            await deleteDoc(doc(db, "tai_lieu_file_chunks", chunkDoc.id));
+          }
+          binaryCache.delete(item.docGroupId);
+          pdfDocumentCache.delete(item.docGroupId);
+        }
+        await loadDocuments();
+      } catch (err) {
+        alert("Lỗi khi xóa: " + err.message);
+      }
+    };
+
+    applyRolePermissionsUI();
+    loadDocuments();
+  </script>
+</body>
+</html>
+
+Lưu ý khi kiểm tra lại:
+
+  - Bạn nhớ copy lại từ khung code mới này và đảm bảo dòng cuối cùng của file là
+    </html>.
+  - Đăng nhập lại bình thường bằng tài khoản admin / asocsgn123 hoặc user /
+    user, sau đó thử dùng 2 ngón tay chụm/tách trên điện thoại để kiểm tra độ
+    bám vị trí khi phóng to.
