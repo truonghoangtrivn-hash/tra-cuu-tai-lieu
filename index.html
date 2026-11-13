@@ -1,0 +1,3420 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LƯU TRỮ TÀI LIỆU & TRA CỨU</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: pan-x pan-y;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    /* Thanh kéo ngang & dọc nổi bật trong khung Xem Tài Liệu Gốc */
+    #viewerScrollContainer {
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
+    }
+    #viewerScrollContainer::-webkit-scrollbar { width: 10px; height: 10px; }
+    @media (min-width: 640px) {
+      #viewerScrollContainer::-webkit-scrollbar { width: 14px; height: 14px; }
+    }
+    #viewerScrollContainer::-webkit-scrollbar-track { background: #0f172a; }
+    #viewerScrollContainer::-webkit-scrollbar-thumb {
+      background: #64748b;
+      border-radius: 7px;
+      border: 2px solid #0f172a;
+    }
+    #viewerScrollContainer::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+    #viewerScrollContainer::-webkit-scrollbar-corner { background: #0f172a; }
+
+    /* Khóa cố định thanh công cụ không bao giờ bị phóng to theo thao tác chạm */
+    .viewer-fixed-bar {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    mark.mark-kw1 {
+      background-color: #fef08a;
+      color: #713f12;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border-bottom: 2px solid #f59e0b;
+    }
+    mark.mark-kw2 {
+      background-color: #bbf7d0;
+      color: #064e3b;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border-bottom: 2px solid #10b981;
+    }
+    mark.mark-ocr-fuzzy {
+      background-color: #f3e8ff;
+      color: #581c87;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border-bottom: 2px dashed #9333ea;
+    }
+
+    .orig-doc-view table {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
+      margin: 10px 0;
+      font-size: 13px;
+      background: #fff;
+    }
+    .orig-doc-view th, .orig-doc-view td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      text-align: left;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+    .orig-doc-view th { background-color: #f8fafc; font-weight: 700; color: #1e293b; }
+    .orig-doc-view p { margin-bottom: 10px; line-height: 1.75; }
+
+    .folder-drop-hover { border-color: #0284c7 !important; background-color: #e0f2fe !important; }
+
+    .pdf-hl-box-kw1 {
+      position: absolute;
+      background-color: rgba(250, 204, 21, 0.42);
+      border: 2px solid #ea580c;
+      border-radius: 3px;
+      box-shadow: 0 0 8px rgba(234, 88, 12, 0.55);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .pdf-hl-box-kw2 {
+      position: absolute;
+      background-color: rgba(74, 222, 128, 0.42);
+      border: 2px solid #15803d;
+      border-radius: 3px;
+      box-shadow: 0 0 8px rgba(21, 128, 61, 0.55);
+      pointer-events: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col">
+
+  <!-- MÀN HÌNH ĐĂNG NHẬP HỆ THỐNG -->
+  <div id="loginOverlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5">
+      <div class="flex flex-col items-center text-center space-y-2">
+        <div class="w-12 h-12 rounded-xl bg-sky-600 flex items-center justify-center shadow-md">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">ĐĂNG NHẬP HỆ THỐNG</h2>
+        <p class="text-xs text-slate-500">LƯU TRỮ TÀI LIỆU & TRA CỨU</p>
+      </div>
+
+      <form id="loginForm" onsubmit="window.handleLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Tên đăng nhập</label>
+          <input type="text" id="loginUsername" required autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Nhập username..." class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu</label>
+          <input type="password" id="loginPassword" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Nhập mật khẩu..." class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100 transition">
+        </div>
+
+        <div id="loginErrorBox" class="hidden text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg text-center">
+          Tên đăng nhập hoặc mật khẩu không đúng!
+        </div>
+
+        <button type="submit" class="w-full h-11 sm:h-10 rounded-lg bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-bold text-sm shadow-sm transition cursor-pointer">
+          Đăng nhập
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- HEADER CHÍNH -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-sm viewer-fixed-bar">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-0 sm:h-16 flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-sky-600 flex items-center justify-center shadow-inner shrink-0">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+        </div>
+        <h1 class="text-sm sm:text-xl font-extrabold tracking-tight text-white truncate">LƯU TRỮ TÀI LIỆU & TRA CỨU</h1>
+      </div>
+
+      <div class="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end ml-auto">
+        <span id="statusBadge" class="hidden md:inline-flex items-center text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full font-medium border border-slate-700">
+          Đang đồng bộ...
+        </span>
+        <span id="userRoleBadge" class="inline-flex items-center text-[11px] sm:text-xs bg-slate-800 text-amber-300 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-bold border border-slate-700">
+          👤 User
+        </span>
+        <button type="button" id="reloadBtn" class="h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] sm:text-xs font-semibold transition flex items-center gap-1 cursor-pointer" title="Làm mới dữ liệu">
+          <span>Làm mới</span>
+        </button>
+        <button type="button" id="headerUploadBtn" onclick="window.openUploadModal()" class="h-8 sm:h-9 px-2.5 sm:px-4 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] sm:text-sm shadow-sm transition flex items-center gap-1 cursor-pointer">
+          <span>+ Đăng tải</span>
+          <span class="hidden sm:inline">tài liệu</span>
+        </button>
+        <button type="button" onclick="window.handleLogout()" class="h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white border border-slate-700 hover:border-red-500 text-[11px] sm:text-xs font-semibold transition flex items-center gap-1 cursor-pointer" title="Đăng xuất tài khoản">
+          <span>Đăng xuất</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BỐ CỤC CHÍNH -->
+  <main class="max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 flex-1">
+    
+    <!-- CỘT TRÁI: DANH MỤC THƯ MỤC & TÀI LIỆU -->
+    <aside class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-slate-200/90 flex flex-col lg:h-[calc(100vh-112px)] lg:sticky lg:top-20 overflow-hidden order-2 lg:order-1">
+      <div class="px-3.5 sm:px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <h2 class="font-bold text-xs text-slate-700 uppercase tracking-wider truncate">Danh mục thư mục</h2>
+          <span id="totalDocsCountBadge" class="text-[11px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full shrink-0">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" id="btnCreateFolderMain" onclick="window.promptCreateFolder()" class="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2.5 py-1 rounded-md transition cursor-pointer">
+            + Thư mục mới
+          </button>
+          <button type="button" id="mobileToggleTreeBtn" onclick="window.toggleMobileFolderTree()" class="lg:hidden text-xs font-semibold text-slate-600 bg-slate-200/80 hover:bg-slate-300 px-2.5 py-1 rounded-md transition cursor-pointer">
+            Thu gọn ▲
+          </button>
+        </div>
+      </div>
+
+      <div id="mobileFolderTreeBody" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-3 border-b border-slate-100 bg-white space-y-2.5">
+          <input type="text" id="treeFilterInput" placeholder="Lọc nhanh tên văn bản trong danh mục..." class="w-full border border-slate-200 rounded-lg px-3 py-2 sm:py-1.5 text-base sm:text-xs text-slate-700 placeholder:italic placeholder:text-slate-400 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100 bg-slate-50/60 transition">
+          
+          <div class="flex justify-between items-center text-xs px-0.5">
+            <button type="button" onclick="window.selectFolder('ALL')" id="btnFolderAll" class="font-bold text-sky-700 hover:underline cursor-pointer py-0.5">
+              Tất cả thư mục
+            </button>
+            <div class="flex items-center gap-2 text-slate-500">
+              <button type="button" onclick="window.expandAllFolders(true)" class="hover:text-slate-800 font-medium cursor-pointer py-0.5">Mở rộng</button>
+              <span class="text-slate-300">|</span>
+              <button type="button" onclick="window.expandAllFolders(false)" class="hover:text-slate-800 font-medium cursor-pointer py-0.5">Thu gọn</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="folderTreeContainer" class="flex-1 overflow-y-auto max-h-[52vh] lg:max-h-none p-2.5 sm:p-3 space-y-2 select-none">
+          <div class="text-xs text-slate-400 italic text-center py-10">Đang tải danh mục tài liệu...</div>
+        </div>
+
+        <div class="px-4 py-2 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 italic flex justify-between items-center">
+          <span id="treeFooterHint">Kéo thả tên văn bản vào thư mục để di chuyển</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CỘT PHẢI: TRA CỨU NGHIỆP VỤ & KẾT QUẢ -->
+    <section class="lg:col-span-8 space-y-4 sm:space-y-5 order-1 lg:order-2">
+      <div class="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200/90 space-y-3.5 sm:space-y-4">
+        <div class="flex flex-wrap justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight uppercase">TRA CỨU NGHIỆP VỤ</h2>
+            <p id="activeFolderHeading" class="text-[11px] sm:text-xs text-slate-500 italic mt-0.5">Phạm vi tra cứu: Tất cả thư mục • Chọn tài liệu trong danh sách kết quả để mở thẳng trang khớp</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="resultCount" class="text-[11px] sm:text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 sm:px-3 py-1 rounded-full">
+              Nhập từ khóa để tra cứu
+            </span>
+            <button type="button" onclick="window.clearSearchBox(0)" id="clearAllSearchBtn" class="hidden text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md transition cursor-pointer">
+              Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+
+        <!-- 2 Ô Tìm kiếm Từ khóa Chính xác 100% + Linh hoạt số -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">
+              Cụm từ khóa 1
+            </label>
+            <div class="relative">
+              <input type="text" id="searchInput1" placeholder="Nhập chính xác từ hoặc cụm từ thứ nhất..." class="w-full border border-slate-300 rounded-lg pl-3.5 pr-8 py-2 text-base sm:text-sm text-slate-800 placeholder:italic placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition">
+              <button type="button" onclick="window.clearSearchBox(1)" id="clearBtn1" class="hidden absolute right-2.5 top-2.5 sm:top-2 text-slate-400 hover:text-slate-700 font-bold text-sm px-1 cursor-pointer">✕</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">
+              Cụm từ khóa 2
+            </label>
+            <div class="relative">
+              <input type="text" id="searchInput2" placeholder="Nhập chính xác từ hoặc cụm từ thứ hai..." class="w-full border border-slate-300 rounded-lg pl-3.5 pr-8 py-2 text-base sm:text-sm text-slate-800 placeholder:italic placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition">
+              <button type="button" onclick="window.clearSearchBox(2)" id="clearBtn2" class="hidden absolute right-2.5 top-2.5 sm:top-2 text-slate-400 hover:text-slate-700 font-bold text-sm px-1 cursor-pointer">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="errorBox" class="hidden bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs space-y-1"></div>
+
+      <!-- Vùng hiển thị danh sách tài liệu khớp [Thư mục] / [Tên file] / -->
+      <div id="resultsList" class="space-y-2.5"></div>
+    </section>
+  </main>
+
+  <!-- MODAL 1: ĐĂNG TẢI TÀI LIỆU MỚI (CHỈ DÀNH CHO ADMIN) -->
+  <div id="uploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[1px] hidden items-center justify-center p-3 sm:p-4 z-40">
+    <div class="bg-white rounded-xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 text-white px-4 sm:px-5 py-3.5 flex justify-between items-center shrink-0">
+        <h3 class="font-bold text-sm sm:text-base tracking-tight">Đăng tải Tài liệu mới lên Đám mây</h3>
+        <button type="button" onclick="window.closeUploadModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+          <div class="sm:col-span-7">
+            <label class="block text-xs font-bold text-slate-700 mb-1">
+              Tiêu đề tài liệu <span class="font-normal italic text-slate-400">(Không bắt buộc)</span>
+            </label>
+            <input type="text" id="docTitle" placeholder="Để trống sẽ tự động lấy tên file..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-base sm:text-sm placeholder:italic focus:ring-2 focus:ring-sky-100 focus:border-sky-600 outline-none transition">
+          </div>
+          <div class="sm:col-span-5">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Thư mục lưu trữ *</label>
+            <div class="flex gap-1.5">
+              <select id="docCategorySelect" class="flex-1 border border-slate-300 rounded-lg px-2.5 py-2 text-base sm:text-sm outline-none bg-white font-semibold text-slate-800 focus:border-sky-600"></select>
+              <button type="button" onclick="window.promptCreateFolder(true)" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 rounded-lg text-xs font-bold cursor-pointer transition" title="Tạo thư mục mới">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 border-2 border-dashed border-slate-300 hover:border-sky-400 rounded-xl p-4 sm:p-5 text-center transition">
+          <label class="block text-xs sm:text-sm font-bold text-slate-800 mb-1">Chọn tệp tài liệu từ thiết bị</label>
+          <p class="text-[11px] sm:text-xs text-slate-500 italic mb-3.5">Tự động làm nét 3x3 Sharpen, khử dấu mộc đỏ & quét OCR 3.0x với mô hình <b>tessdata_best (vie)</b></p>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.xls,.txt,.csv,.png,.jpg,.jpeg,.webp" class="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-sky-600 file:text-white hover:file:bg-sky-700 cursor-pointer">
+          <div id="extractProgress" class="hidden mt-3.5 text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg text-left"></div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-xs font-bold text-slate-700">Nội dung văn bản trích xuất *</label>
+            <span id="charCount" class="text-xs italic text-slate-400">0 ký tự</span>
+          </div>
+          <textarea id="docContent" rows="5" placeholder="Nội dung chữ sẽ tự động hiển thị tại đây sau khi chọn tệp, hoặc bạn có thể nhập trực tiếp..." class="w-full border border-slate-300 rounded-lg p-3 text-xs leading-relaxed placeholder:italic focus:ring-2 focus:ring-sky-100 focus:border-sky-600 outline-none"></textarea>
+        </div>
+      </div>
+
+      <div class="px-4 sm:px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5 shrink-0">
+        <button type="button" onclick="window.closeUploadModal()" class="h-9 px-4 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs transition cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button type="button" id="saveBtn" class="h-9 px-5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition cursor-pointer">
+          Lưu tài liệu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CHUYỂN THƯ MỤC (CHỈ DÀNH CHO ADMIN) -->
+  <div id="moveFolderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[1px] hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-md w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-base text-slate-900">Chuyển thư mục lưu trữ</h3>
+        <button type="button" onclick="window.closeMoveModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold cursor-pointer">&times;</button>
+      </div>
+      <p id="moveModalDocTitle" class="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 p-2.5 rounded-lg truncate"></p>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">Chọn thư mục đích:</label>
+        <select id="moveTargetSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-base sm:text-sm font-semibold text-slate-800 focus:border-sky-600 outline-none"></select>
+      </div>
+      <div class="flex justify-between items-center pt-2">
+        <button type="button" onclick="window.promptCreateFolder(false, true)" class="text-xs font-bold text-sky-700 hover:underline cursor-pointer">
+          + Tạo thư mục mới
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="window.closeMoveModal()" class="h-9 px-3.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+            Hủy
+          </button>
+          <button type="button" id="confirmMoveBtn" class="h-9 px-4 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm cursor-pointer">
+            Xác nhận chuyển
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: TRÌNH XEM NGUYÊN TRẠNG TÀI LIỆU GỐC (THANH CÔNG CỤ CỐ ĐỊNH TUYỆT ĐỐI + CHỤM 2 NGÓN TAY PHÓNG TO RIÊNG VĂN BẢN) -->
+  <div id="originalViewerModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-[2px] hidden items-center justify-center p-0 sm:p-3 z-50">
+    <div class="bg-slate-900 sm:rounded-xl max-w-[1440px] w-full h-full sm:h-[96vh] flex flex-col shadow-2xl overflow-hidden border-0 sm:border sm:border-slate-700">
+      
+      <!-- Thanh Header Cố định -->
+      <div class="viewer-fixed-bar bg-slate-950 text-white px-2.5 sm:px-4 py-2 lg:py-0 lg:h-14 flex flex-col sm:flex-row lg:grid lg:grid-cols-12 sm:items-center justify-between gap-2 border-b border-slate-800 shrink-0 z-20">
+        
+        <!-- Cột Trái: Loại file & Tên tài liệu -->
+        <div class="lg:col-span-4 flex items-center gap-2 min-w-0 w-full sm:w-auto sm:flex-1 pr-1 overflow-hidden">
+          <span id="viewerBadge" class="text-[10px] font-extrabold bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded shrink-0">BẢN GỐC</span>
+          <h3 id="viewerTitle" class="font-bold text-xs sm:text-sm text-slate-100 truncate" title="">Tên tài liệu</h3>
+        </div>
+
+        <!-- Cụm nút Phóng to / Thu nhỏ & Chức năng -->
+        <div class="lg:col-span-8 flex items-center justify-between sm:justify-end lg:justify-between gap-1.5 w-full sm:w-auto shrink-0">
+          <!-- Cụm nút Phóng to / Thu nhỏ -->
+          <div id="pdfControls" class="hidden items-center gap-1 bg-slate-900 px-1.5 py-0.5 rounded-lg text-[11px] sm:text-xs border border-slate-700 shrink-0 whitespace-nowrap lg:mx-auto">
+            <button type="button" onclick="window.zoomPdf(-0.15)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded font-bold flex items-center justify-center cursor-pointer select-none" title="Thu nhỏ tài liệu">−</button>
+            <button type="button" id="pdfZoomLabel" onclick="window.resetViewerZoom()" class="w-11 sm:w-12 h-7 text-center font-semibold text-amber-300 hover:text-white hover:bg-slate-800 rounded transition select-none cursor-pointer" title="Nhấn để đưa về tỷ lệ vừa màn hình">100%</button>
+            <button type="button" onclick="window.zoomPdf(0.15)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded font-bold flex items-center justify-center cursor-pointer select-none" title="Phóng to tài liệu">+</button>
+          </div>
+
+          <!-- Các nút chế độ & đóng -->
+          <div class="flex items-center justify-end gap-1 sm:gap-1.5 shrink-0 ml-auto lg:ml-0">
+            <button type="button" id="sideBySideBtn" onclick="window.toggleSideBySideEditor()" class="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer" title="Chia đôi màn hình: Xem Trang Gốc & Sửa lỗi chính tả OCR">
+              📖 <span class="hidden sm:inline">Song song &</span> Sửa OCR
+            </button>
+            <button type="button" id="switchModeBtn" onclick="window.toggleViewerMode()" class="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] sm:text-xs font-semibold transition whitespace-nowrap cursor-pointer">
+              Văn bản
+            </button>
+            <button type="button" id="viewerDownloadBtn" class="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-bold shadow-sm transition whitespace-nowrap cursor-pointer">
+              Tải gốc
+            </button>
+            <button type="button" onclick="window.closeViewerModal()" class="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white text-base sm:text-lg font-bold flex items-center justify-center transition shrink-0 cursor-pointer" title="Đóng (Esc)">&times;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thanh phụ dưới Header Cố định -->
+      <div id="matchedPagesBar" class="viewer-fixed-bar hidden bg-slate-900 border-b border-slate-800 px-2.5 sm:px-4 py-1.5 text-xs text-slate-200 flex items-center justify-between gap-2 shrink-0 z-20">
+        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5">
+          <span class="font-bold shrink-0 text-amber-400 text-[11px] sm:text-xs">Trang khớp:</span>
+          <div id="matchedPagesList" class="flex items-center gap-1.5"></div>
+        </div>
+        <span id="pageHighlightCountBadge" class="bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px] sm:text-[11px] shrink-0 whitespace-nowrap hidden">0 vị trí</span>
+      </div>
+
+      <!-- THÂN TRÌNH XEM -->
+      <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        <div class="flex-1 overflow-auto bg-slate-800/90 p-1.5 sm:p-5 relative" id="viewerScrollContainer">
+          <div id="viewerLoading" class="hidden my-20 mx-auto text-center text-white space-y-3 max-w-md bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
+            <div class="inline-block w-9 h-9 border-4 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+            <p id="viewerLoadingText" class="text-sm font-medium text-slate-200">Đang tải dữ liệu tài liệu gốc...</p>
+          </div>
+
+          <!-- Khung chứa danh sách toàn bộ các trang PDF xếp dọc liên tục -->
+          <div id="pdfCanvasWrapper" class="hidden flex-col items-center gap-3 sm:gap-6 w-fit mx-auto"></div>
+
+          <!-- Khung hiển thị Excel / Word / Ảnh -->
+          <div id="otherOriginalWrapper" class="hidden bg-white text-slate-800 rounded-lg sm:rounded-xl shadow-2xl w-fit min-w-full p-3 sm:p-6 h-fit mx-auto orig-doc-view transition-transform duration-150"></div>
+          <div id="rawTextWrapper" class="hidden bg-white text-slate-800 rounded-lg sm:rounded-xl shadow-2xl max-w-5xl w-full p-4 sm:p-8 h-fit mx-auto text-xs sm:text-sm whitespace-pre-wrap leading-relaxed"></div>
+        </div>
+
+        <aside id="sideBySideEditorPane" class="hidden w-full h-2/5 md:h-auto md:w-1/2 max-w-2xl bg-slate-900 border-t md:border-t-0 md:border-l border-slate-700 flex-col shrink-0 z-20">
+          <div class="px-3 sm:px-4 py-2 bg-slate-950 border-b border-slate-800 flex justify-between items-center gap-2 viewer-fixed-bar">
+            <div class="min-w-0">
+              <span id="sideEditorPageLabel" class="text-xs font-extrabold text-amber-400 uppercase tracking-wider">Văn bản OCR — Trang 1</span>
+              <p class="text-[10px] sm:text-[11px] text-slate-400 italic truncate">Tự động nhảy theo trang đang cuộn, sửa chữ và bấm Lưu</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" id="savePageOcrEditBtn" onclick="window.saveCurrentPageOcrTextEdit()" class="h-7 sm:h-8 px-2.5 sm:px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow cursor-pointer transition">
+                💾 Lưu sửa
+              </button>
+              <button type="button" onclick="window.toggleSideBySideEditor()" class="text-slate-400 hover:text-white text-lg font-bold px-1.5 cursor-pointer" title="Đóng khung sửa song song">&times;</button>
+            </div>
+          </div>
+          <div class="flex-1 p-2.5 sm:p-4 flex flex-col bg-slate-900">
+            <textarea id="sideBySideTextarea" class="w-full flex-1 bg-white text-slate-900 rounded-lg p-3 sm:p-4 text-base sm:text-sm leading-relaxed border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-400 font-sans resize-none" placeholder="Nội dung văn bản của trang này..."></textarea>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIC HỆ THỐNG -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { initializeFirestore, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Hàm đọc/ghi bộ nhớ an toàn trên mọi trình duyệt di động & Zalo WebView
+    function safeGetSession(key) {
+      try { return sessionStorage.getItem(key); } catch (e) { return null; }
+    }
+    function safeSetSession(key, val) {
+      try { sessionStorage.setItem(key, val); } catch (e) {}
+    }
+    function safeRemoveSession(key) {
+      try { sessionStorage.removeItem(key); } catch (e) {}
+    }
+    function safeGetLocal(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    function safeSetLocal(key, val) {
+      try { localStorage.setItem(key, val); } catch (e) {}
+    }
+
+    const cloudConfig = {
+      apiKey: "AIzaSyDidFD67iDLicafukZAHdaxuUuTg0RAXR4",
+      authDomain: "congvan-302d1.firebaseapp.com",
+      projectId: "congvan-302d1",
+      storageBucket: "congvan-302d1.firebasestorage.app",
+      messagingSenderId: "659361804140",
+      appId: "1:659361804140:web:4c44ea2e5ba6bea7974d49"
+    };
+
+    const app = initializeApp(cloudConfig);
+    const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+    const colRef = collection(db, "tai_lieu_trien_khai");
+    const fileChunksColRef = collection(db, "tai_lieu_file_chunks");
+    const folderConfigDocRef = doc(db, "tai_lieu_settings", "folders_list");
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    const MAX_TEXT_CHARS = 600000;
+    const MAX_BASE64_CHARS = 750000;
+
+    const BM25_K1 = 1.5;
+    const BM25_B = 0.75;
+
+    let allDocuments = [];
+    let avgPageLengthGlobal = 1200;
+    let totalPagesGlobal = 1;
+
+    let customFolders = ["Tài liệu chung", "Quy trình nghiệp vụ", "Công văn - Triển khai"];
+    let openFoldersState = new Set(customFolders);
+    let currentSelectedFolder = "ALL";
+    let selectedDocIdInTree = null;
+    let docIdPendingMove = null;
+    let isMobileTreeCollapsed = false;
+
+    let currentSearchMatchedDocsMap = new Map();
+
+    let currentFileType = "TEXT";
+    let currentFileName = "";
+    let currentFileSize = 0;
+    let currentFileBase64Full = "";
+
+    const binaryCache = new Map();
+    const pdfDocumentCache = new Map();
+    let activeViewerBlobUrls = [];
+
+    let activeViewerDoc = null;
+    let activePdfInstance = null;
+    let activePdfPage = 1;
+    let activePdfScale = 1.35;
+    let activeDocZoom = 1.0;
+    let activeViewerRotation = 0;
+    let isSideBySideOpen = false;
+    let activeKw1 = "";
+    let activeKw2 = "";
+    let isRawTextMode = false;
+    let activeMatchedPageSet = new Set();
+
+    let pdfIntersectionObserver = null;
+    const pdfActiveRenderTasks = new Map();
+    const pdfRenderedPagesSet = new Set();
+    let cachedPdfSlotElements = [];
+    let isProgrammaticScrolling = false;
+    let scrollTicking = false;
+    let pdfUnitWidth = 595;
+    let pdfUnitHeight = 842;
+
+    const fileInput = document.getElementById('fileInput');
+    const docTitle = document.getElementById('docTitle');
+    const docContent = document.getElementById('docContent');
+    const charCount = document.getElementById('charCount');
+    const extractProgress = document.getElementById('extractProgress');
+    const saveBtn = document.getElementById('saveBtn');
+    const searchInput1 = document.getElementById('searchInput1');
+    const searchInput2 = document.getElementById('searchInput2');
+    const clearBtn1 = document.getElementById('clearBtn1');
+    const clearBtn2 = document.getElementById('clearBtn2');
+    const clearAllSearchBtn = document.getElementById('clearAllSearchBtn');
+    const resultsList = document.getElementById('resultsList');
+    const resultCount = document.getElementById('resultCount');
+    const statusBadge = document.getElementById('statusBadge');
+    const errorBox = document.getElementById('errorBox');
+    const reloadBtn = document.getElementById('reloadBtn');
+    const folderTreeContainer = document.getElementById('folderTreeContainer');
+    const treeFilterInput = document.getElementById('treeFilterInput');
+    const docCategorySelect = document.getElementById('docCategorySelect');
+    const activeFolderHeading = document.getElementById('activeFolderHeading');
+    const totalDocsCountBadge = document.getElementById('totalDocsCountBadge');
+    const viewerScrollEl = document.getElementById('viewerScrollContainer');
+
+    document.addEventListener('gesturestart', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+
+    window.toggleMobileFolderTree = () => {
+      const bodyEl = document.getElementById('mobileFolderTreeBody');
+      const btnEl = document.getElementById('mobileToggleTreeBtn');
+      isMobileTreeCollapsed = !isMobileTreeCollapsed;
+      if (isMobileTreeCollapsed) {
+        bodyEl.classList.add('hidden');
+        btnEl.textContent = "Mở rộng ▼";
+      } else {
+        bodyEl.classList.remove('hidden');
+        btnEl.textContent = "Thu gọn ▲";
+      }
+    };
+
+    async function computeOptimalInitialPdfScale(pdfInstance, rotationDeg = 0) {
+      try {
+        const page1 = await pdfInstance.getPage(1);
+        const baseRot = page1.rotate || 0;
+        const unitVp = page1.getViewport({ scale: 1.0, rotation: (baseRot + rotationDeg) % 360 });
+        pdfUnitWidth = unitVp.width;
+        pdfUnitHeight = unitVp.height;
+        if (window.innerWidth >= 768) return 1.35;
+        const containerW = Math.max(280, (viewerScrollEl?.clientWidth || window.innerWidth) - 12);
+        const fitScale = containerW / Math.max(1, unitVp.width);
+        return Math.max(0.45, Math.min(1.35, Number(fitScale.toFixed(2))));
+      } catch (e) {
+        return window.innerWidth >= 768 ? 1.35 : 0.66;
+      }
+    }
+
+    function getHiDpiCanvasSupersampleRatio(cssScale) {
+      const dpr = window.devicePixelRatio || 1;
+      if (window.innerWidth < 768) {
+        const minTargetEffectiveScale = 2.25;
+        const neededMultiplier = Math.max(dpr, minTargetEffectiveScale / Math.max(0.4, cssScale));
+        return Math.min(3.5, Math.max(2.0, neededMultiplier));
+      }
+      return Math.min(2.25, Math.max(1.5, dpr));
+    }
+
+    // =========================================================================
+    // 0. QUẢN LÝ ĐĂNG NHẬP & PHÂN QUYỀN (ADMIN / USER)
+    // =========================================================================
+    let currentUserRole = safeGetSession('tailieu_auth_role_v1') || null;
+
+    function isAdmin() {
+      return currentUserRole === 'admin';
+    }
+
+    function applyRolePermissionsUI() {
+      const loginOverlay = document.getElementById('loginOverlay');
+      const roleBadge = document.getElementById('userRoleBadge');
+      const headerUploadBtn = document.getElementById('headerUploadBtn');
+      const btnCreateFolderMain = document.getElementById('btnCreateFolderMain');
+      const treeFooterHint = document.getElementById('treeFooterHint');
+      const sideBySideBtn = document.getElementById('sideBySideBtn');
+      const switchModeBtn = document.getElementById('switchModeBtn');
+      const sidePane = document.getElementById('sideBySideEditorPane');
+
+      if (!currentUserRole) {
+        loginOverlay.classList.remove('hidden');
+        loginOverlay.classList.add('flex');
+        return;
+      }
+
+      loginOverlay.classList.add('hidden');
+      loginOverlay.classList.remove('flex');
+
+      if (isAdmin()) {
+        roleBadge.textContent = "👑 Admin";
+        roleBadge.className = "inline-flex items-center text-[11px] sm:text-xs bg-amber-500/20 text-amber-300 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-bold border border-amber-500/40";
+        headerUploadBtn.classList.remove('hidden');
+        headerUploadBtn.classList.add('flex');
+        btnCreateFolderMain.classList.remove('hidden');
+        treeFooterHint.textContent = "Kéo thả tên văn bản vào thư mục để di chuyển";
+        sideBySideBtn.classList.remove('hidden');
+        switchModeBtn.classList.remove('hidden');
+      } else {
+        roleBadge.textContent = "👤 User";
+        roleBadge.className = "inline-flex items-center text-[11px] sm:text-xs bg-slate-800 text-sky-300 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-bold border border-slate-700";
+        headerUploadBtn.classList.add('hidden');
+        headerUploadBtn.classList.remove('flex');
+        btnCreateFolderMain.classList.add('hidden');
+        treeFooterHint.textContent = "Chọn thư mục hoặc nhấn vào văn bản để xem";
+        sideBySideBtn.classList.add('hidden');
+        switchModeBtn.classList.add('hidden');
+        isSideBySideOpen = false;
+        sidePane.classList.add('hidden');
+        sidePane.classList.remove('flex');
+      }
+
+      renderFolderTree();
+      performSearch();
+    }
+
+    window.handleLoginSubmit = (e) => {
+      e.preventDefault();
+      const u = (document.getElementById('loginUsername').value || "").trim().toLowerCase();
+      const p = (document.getElementById('loginPassword').value || "").trim();
+      const errBox = document.getElementById('loginErrorBox');
+
+      if (u === 'admin' && p === 'asocsgn123') {
+        currentUserRole = 'admin';
+      } else if (u === 'user' && p === 'user') {
+        currentUserRole = 'user';
+      } else {
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      errBox.classList.add('hidden');
+      safeSetSession('tailieu_auth_role_v1', currentUserRole);
+      document.getElementById('loginPassword').value = "";
+      applyRolePermissionsUI();
+      if (isAdmin()) {
+        autoHealExcelAndWordDocumentsInBackground();
+      }
+    };
+
+    window.handleLogout = () => {
+      safeRemoveSession('tailieu_auth_role_v1');
+      currentUserRole = null;
+      window.closeViewerModal();
+      window.closeUploadModal();
+      window.closeMoveModal();
+      document.getElementById('loginUsername').value = "";
+      document.getElementById('loginPassword').value = "";
+      document.getElementById('loginErrorBox').classList.add('hidden');
+      applyRolePermissionsUI();
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const viewerModal = document.getElementById('originalViewerModal');
+        const moveModal = document.getElementById('moveFolderModal');
+        const uploadModal = document.getElementById('uploadModal');
+        if (!viewerModal.classList.contains('hidden')) {
+          window.closeViewerModal();
+        } else if (!moveModal.classList.contains('hidden')) {
+          window.closeMoveModal();
+        } else if (!uploadModal.classList.contains('hidden')) {
+          window.closeUploadModal();
+        }
+      }
+    });
+
+    // =========================================================================
+    // 1. CHUYỂN MÃ TCVN3 / VNI AN TOÀN TUYỆT ĐỐI & CHUẨN HÓA VĂN BẢN EXCEL/WORD/PDF
+    // =========================================================================
+
+    const TCVN3_MAP = {
+      '¸':'á','µ':'à','¶':'ả','·':'ã','¹':'ạ',
+      '¨':'ă','¾':'ắ','»':'ằ','¼':'ẳ','½':'ẵ','Æ':'ặ',
+      '©':'â','Ê':'ấ','Ç':'ầ','È':'ẩ','É':'ẫ','Ë':'ậ',
+      '®':'đ','§':'Đ',
+      'Ð':'é','Ì':'è','Î':'ẻ','Ï':'ẽ','Ñ':'ẹ',
+      'ª':'ê','Õ':'ế','Ò':'ề','Ó':'ể','Ô':'ễ','Ö':'ệ',
+      'Ý':'í','×':'ì','Ø':'ỉ','Ü':'ĩ','Þ':'ị',
+      'ã':'ó','ß':'ò','á':'ỏ','â':'õ','ä':'ọ',
+      '«':'ô','è':'ố','å':'ồ','æ':'ổ','ç':'ỗ','é':'ộ',
+      '¬':'ơ','í':'ớ','ê':'ờ','ë':'ở','ì':'ỡ','î':'ợ',
+      'ó':'ú','ï':'ù','ñ':'ủ','ò':'ũ','ô':'ụ',
+      '­':'ư','ø':'ứ','õ':'ừ','ö':'ử','÷':'ữ','ù':'ự',
+      'ý':'ý','ú':'ỳ','û':'ỷ','ü':'ỹ','þ':'ỵ',
+      '¡':'Ă','¢':'Â','£':'Ê','¤':'Ô','¥':'Ơ','¦':'Ư'
+    };
+
+    const VNI_SAFE_PAIRS = [
+      ['aù','á'],['aø','à'],['aû','ả'],['aõ','ã'],['aï','ạ'],
+      ['aê','ă'],['aé','ắ'],['aè','ằ'],['aú','ẳ'],['aü','ẵ'],['aë','ặ'],
+      ['aâ','â'],['aá','ấ'],['aà','ầ'],['aå','ẩ'],['aã','ẫ'],['aä','ậ'],
+      ['eù','é'],['eø','è'],['eû','ẻ'],['eõ','ẽ'],['eï','ẹ'],
+      ['eâ','ê'],['eá','ế'],['eà','ề'],['eå','ể'],['eã','ễ'],['eä','ệ'],
+      ['où','ó'],['oø','ò'],['oû','ỏ'],['oõ','õ'],['oï','ọ'],
+      ['oâ','ô'],['oá','ố'],['oà','ồ'],['oå','ổ'],['oã','ỗ'],['oä','ộ'],
+      ['uù','ú'],['uø','ù'],['uû','ủ'],['uõ','ũ'],['uï','ụ'],
+      ['yù','ý'],['yø','ỳ'],['yû','ỷ'],['yõ','ỹ'],['yï','ỵ'],
+      ['AÙ','Á'],['AØ','À'],['AÛ','Ả'],['AÕ','Ã'],['AÏ','Ạ'],
+      ['AÊ','Ă'],['AÉ','Ắ'],['AÈ','Ằ'],['AÚ','Ẳ'],['AÜ','Ẵ'],['AË','Ặ'],
+      ['AÂ','Â'],['AÁ','Ấ'],['AÀ','Ầ'],['AÅ','Ẩ'],['AÃ','Ẫ'],['AÄ','Ậ'],
+      ['EÙ','É'],['EØ','È'],['EÛ','Ẻ'],['EÕ','Ẽ'],['EÏ','Ẹ'],
+      ['EÂ','Ê'],['EÁ','Ế'],['EÀ','Ề'],['EÅ','Ể'],['EÃ','Ễ'],['EÄ','Ệ'],
+      ['OÙ','Ó'],['OØ','Ò'],['OÛ','Ỏ'],['OÕ','Õ'],['OÏ','Ọ'],
+      ['OÂ','Ô'],['OÁ','Ố'],['OÀ','Ồ'],['OÅ','Ổ'],['OÃ','Ỗ'],['OÄ','Ộ'],
+      ['UÙ','Ú'],['UØ','Ù'],['UÛ','Ủ'],['UÕ','Ũ'],['UÏ','Ụ']
+    ];
+
+    function convertLegacyVietnameseEncoding(text) {
+      if (!text) return "";
+      let res = text;
+      const vniMatches = res.match(/(aù|aø|aû|aï|eá|eà|eä|oá|oà|oä|uù|uø|uï)/g);
+      if (vniMatches && vniMatches.length >= 2 && !/[àáảãạăắằẳẵặâấầẩẫậđêếềểễệôốồổỗộơớờởỡợưứừửữự]/.test(res)) {
+        for (const [k, v] of VNI_SAFE_PAIRS) {
+          res = res.split(k).join(v);
+        }
+      }
+      const tcvnMatches = res.match(/(µ|¸|¶|·|¹|¨|©|®|ª|«|¬|­)/g);
+      if (tcvnMatches && tcvnMatches.length >= 3 && !/[àáảãạăâđêôơư]/.test(res)) {
+        res = res.split('').map(ch => TCVN3_MAP[ch] || ch).join('');
+      }
+      return res.normalize('NFC');
+    }
+
+    function cleanAndNormalizeVietnameseText(rawText) {
+      if (!rawText) return "";
+      let t = rawText
+        .replace(/[\x00\u200B-\u200D\uFEFF\u00AD]/g, '')
+        .replace(/[\u00A0\t]+/g, ' ');
+
+      t = convertLegacyVietnameseEncoding(t);
+
+      t = t.replace(/\b(tritruong[_\s]*truong\s*hoang\s*tri|truong\s*hoang\s*tri|tritruong|uong\s*hoang\s*tri|ruong\s*hoang\s*tri)\b/gi, ' ');
+
+      const ocrFixes = [
+        [/\bC[O0Q]NG\s+H[O0Q]A\s+X[AÃÄ]\s+H[O0Q]I\s+CH[UỦ]\s+NGH[I1Ĩ]A\s+VI[EỆ]T\s+NAM\b/gi, 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM'],
+        [/\b[ĐD][OỘ0]c\s+l[aậ1]p\s*-\s*T[uựir]+\s+do\s*-\s*H[aạ]nh\s+ph[uúü]c\b/gi, 'Độc lập - Tự do - Hạnh phúc'],
+        [/\bT[OỔ0]NG\s+C[OÔ0]NG\s+TY\s+H[AÀ]NG\s+KH[OÔ0]NG\s+VI[EỆ]T\s+NAM\b/gi, 'TỔNG CÔNG TY HÀNG KHÔNG VIỆT NAM'],
+        [/\bCH[UỦ]\s+NGH1A\b/gi, 'CHỦ NGHĨA'],
+        [/\bVI[EỆ]t\s+NAM\b/g, 'VIỆT NAM'],
+        [/\bQui\s+djnh\b/gi, 'Quy định'],
+        [/\bHuOng\s+d[aẫ]n\b/gi, 'Hướng dẫn'],
+        [/\btieu\s+chuan\s+dinh\s+mirk\b/gi, 'tiêu chuẩn định mức']
+      ];
+      ocrFixes.forEach(([rx, rep]) => {
+        t = t.replace(rx, rep);
+      });
+
+      return t.normalize('NFC');
+    }
+
+    function extractCleanTextFromExcelWorkbook(workbook) {
+      if (!workbook || !workbook.SheetNames) return "";
+      let fullExcel = "";
+      workbook.SheetNames.forEach(sName => {
+        const sheet = workbook.Sheets[sName];
+        if (!sheet) return;
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+        const rowStrings = [];
+        for (const row of rows) {
+          if (!Array.isArray(row)) continue;
+          const cells = row.map(c => String(c ?? "").trim()).filter(Boolean);
+          if (cells.length > 0) {
+            rowStrings.push(cells.join(" | "));
+          }
+        }
+        if (rowStrings.length > 0) {
+          fullExcel += `[Sheet: ${sName}]\n` + cleanAndNormalizeVietnameseText(rowStrings.join("\n")) + "\n\n";
+        }
+      });
+      return fullExcel.trim();
+    }
+
+    function toVietnameseLowerNFC(str) {
+      return (str || "").normalize('NFC').toLowerCase();
+    }
+
+    function removeAccents(str) {
+      return (str || "")
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .normalize('NFC')
+        .toLowerCase();
+    }
+
+    function hasVietnameseDiacritics(str) {
+      const nfc = toVietnameseLowerNFC(str);
+      const stripped = removeAccents(str);
+      return nfc !== stripped;
+    }
+
+    function escapeHtml(str) {
+      return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function escapeRegExp(str) {
+      return (str || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // =========================================================================
+    // 2. BỘ ĐỐI SÁNH CỤM TỪ CHÍNH XÁC 100% + LINH HOẠT SỐ
+    // =========================================================================
+
+    function buildFlexibleNumberGroupPattern(digitsStr) {
+      const stripped = digitsStr.replace(/^0+/, '') || '0';
+      if (stripped === '0') return '0+';
+
+      if (stripped.length >= 4) {
+        const parts = [];
+        let rem = stripped;
+        while (rem.length > 3) {
+          parts.unshift(rem.slice(-3));
+          rem = rem.slice(0, -3);
+        }
+        parts.unshift(rem);
+        return '0*' + parts.join('[.,]?');
+      }
+      return '0*' + stripped;
+    }
+
+    function tokenToFlexiblePattern(tk) {
+      if (/^\d{1,3}([.,]\d{3})+$/.test(tk)) {
+        const rawDigits = tk.replace(/[.,]/g, '');
+        return buildFlexibleNumberGroupPattern(rawDigits);
+      }
+
+      if (/^\d+$/.test(tk)) {
+        return buildFlexibleNumberGroupPattern(tk);
+      }
+
+      if (/\d/.test(tk)) {
+        const segments = tk.match(/\d+|\D+/g) || [tk];
+        let pattern = "";
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          if (/^\d+$/.test(seg)) {
+            pattern += buildFlexibleNumberGroupPattern(seg);
+          } else {
+            pattern += escapeRegExp(seg);
+          }
+          if (i < segments.length - 1) {
+            const curIsLetter = /[\p{L}]$/u.test(seg);
+            const nextIsDigit = /^\d/.test(segments[i + 1]);
+            if (curIsLetter && nextIsDigit) {
+              pattern += '\\s*';
+            }
+          }
+        }
+        return pattern;
+      }
+
+      return escapeRegExp(tk);
+    }
+
+    function joinTokensWithSmartSpacing(tokens) {
+      if (tokens.length === 0) return "";
+      let result = tokenToFlexiblePattern(tokens[0]);
+      for (let i = 1; i < tokens.length; i++) {
+        const prev = tokens[i - 1];
+        const curr = tokens[i];
+        const prevEndsLetter = /[\p{L}]$/u.test(prev);
+        const currStartsDigit = /^\d/.test(curr);
+        const sep = (prevEndsLetter && currStartsDigit) ? '\\s*' : '\\s+';
+        result += sep + tokenToFlexiblePattern(curr);
+      }
+      return result;
+    }
+
+    function buildPhraseMatcher(rawQuery) {
+      const clean = (rawQuery || "").trim().replace(/\s+/g, ' ');
+      if (!clean) return null;
+
+      const isAccented = hasVietnameseDiacritics(clean);
+      const nfcPhrase = toVietnameseLowerNFC(clean);
+      const asciiPhrase = removeAccents(clean);
+
+      const nfcTokens = nfcPhrase.split(' ').filter(Boolean);
+      const asciiTokens = asciiPhrase.split(' ').filter(Boolean);
+      if (nfcTokens.length === 0) return null;
+
+      const startBoundary = /^[\p{L}\p{N}]/u.test(nfcTokens[0]) ? '(?<![\\p{L}\\p{N}])' : '';
+      const endBoundary = /[\p{L}\p{N}]$/u.test(nfcTokens[nfcTokens.length - 1]) ? '(?![\\p{L}\\p{N}])' : '';
+
+      const nfcInner = joinTokensWithSmartSpacing(nfcTokens);
+      const asciiInner = joinTokensWithSmartSpacing(asciiTokens);
+
+      const strictRegex = new RegExp(`${startBoundary}(${isAccented ? nfcInner : asciiInner})${endBoundary}`, 'giu');
+      const asciiBoundaryRegex = new RegExp(`${startBoundary}(${asciiInner})${endBoundary}`, 'giu');
+
+      return {
+        raw: clean,
+        isAccented,
+        targetPhrase: isAccented ? nfcPhrase : asciiPhrase,
+        asciiPhrase,
+        regex: strictRegex,
+        asciiRegex: asciiBoundaryRegex
+      };
+    }
+
+    function findPhraseOccurrencesInPage(pageObj, matcher) {
+      if (!matcher || !pageObj) return [];
+      const sourceText = matcher.isAccented ? pageObj.nfcLowerText : pageObj.asciiLowerText;
+      if (!sourceText) return [];
+
+      const hits = [];
+      const rx = new RegExp(matcher.regex.source, 'giu');
+      let m;
+      let safety = 0;
+      while ((m = rx.exec(sourceText)) !== null) {
+        safety++;
+        if (safety > 300) break;
+        hits.push({ pos: m.index, len: m[0].length, isFuzzyOcr: false });
+        if (rx.lastIndex === m.index) rx.lastIndex++;
+      }
+      return hits;
+    }
+
+    function findFuzzyOcrFallbackOccurrencesInPage(pageObj, matcher) {
+      if (!matcher || !matcher.isAccented || !pageObj) return [];
+      const asciiText = pageObj.asciiLowerText;
+      const nfcText = pageObj.nfcLowerText;
+      if (!asciiText || !nfcText) return [];
+
+      const fuzzyHits = [];
+      const rx = new RegExp(matcher.asciiRegex.source, 'giu');
+      let m;
+      let safety = 0;
+      while ((m = rx.exec(asciiText)) !== null) {
+        safety++;
+        if (safety > 200) break;
+        const start = m.index;
+        const len = m[0].length;
+        const nfcSlice = nfcText.substring(start, start + len);
+        const asciiSlice = asciiText.substring(start, start + len);
+
+        if (nfcSlice === asciiSlice) {
+          fuzzyHits.push({ pos: start, len, isFuzzyOcr: true });
+        }
+        if (rx.lastIndex === m.index) rx.lastIndex++;
+      }
+      return fuzzyHits;
+    }
+
+    function highlightBothKeywordsInPlainText(rawText, kw1, kw2, allowFuzzyOcr = false) {
+      if (!rawText) return "";
+      const m1 = buildPhraseMatcher(kw1);
+      const m2 = buildPhraseMatcher(kw2);
+
+      if (!m1 && !m2) return escapeHtml(rawText);
+
+      const nfcText = toVietnameseLowerNFC(rawText);
+      const asciiText = removeAccents(rawText);
+
+      const matches = [];
+      const collectHighlights = (matcher, cls) => {
+        if (!matcher) return;
+        const searchTarget = matcher.isAccented ? nfcText : asciiText;
+        const rx = new RegExp(matcher.regex.source, 'giu');
+        let m;
+        let count = 0;
+        while ((m = rx.exec(searchTarget)) !== null) {
+          count++;
+          if (count > 300) break;
+          const start = m.index;
+          const end = m.index + m[0].length;
+          if (start >= 0 && end <= rawText.length) {
+            matches.push({ start, end, cls, len: end - start });
+          }
+          if (rx.lastIndex === m.index) rx.lastIndex++;
+        }
+
+        if (count === 0 && allowFuzzyOcr && matcher.isAccented) {
+          const rxAscii = new RegExp(matcher.asciiRegex.source, 'giu');
+          let fm;
+          while ((fm = rxAscii.exec(asciiText)) !== null) {
+            const s = fm.index;
+            const e = fm.index + fm[0].length;
+            if (nfcText.substring(s, e) === asciiText.substring(s, e)) {
+              matches.push({ start: s, end: e, cls: "mark-ocr-fuzzy", len: e - s });
+            }
+            if (rxAscii.lastIndex === fm.index) rxAscii.lastIndex++;
+          }
+        }
+      };
+
+      collectHighlights(m1, "mark-kw1");
+      if (m2) collectHighlights(m2, "mark-kw2");
+
+      if (matches.length === 0) return escapeHtml(rawText);
+
+      matches.sort((a, b) => a.start - b.start || b.len - a.len);
+
+      let html = "";
+      let cursor = 0;
+      for (const item of matches) {
+        if (item.start < cursor) continue;
+        html += escapeHtml(rawText.substring(cursor, item.start));
+        html += `<mark class="${item.cls}">${escapeHtml(rawText.substring(item.start, item.end))}</mark>`;
+        cursor = item.end;
+      }
+      html += escapeHtml(rawText.substring(cursor));
+      return html;
+    }
+
+    function highlightDomElementNodes(containerEl, kw1, kw2) {
+      if (!containerEl) return 0;
+      const walker = document.createTreeWalker(containerEl, NodeFilter.SHOW_TEXT, null, false);
+      const textNodes = [];
+      let currentNode;
+      while ((currentNode = walker.nextNode())) {
+        if (currentNode.nodeValue && currentNode.nodeValue.trim()) {
+          textNodes.push(currentNode);
+        }
+      }
+
+      let totalHighlighted = 0;
+      textNodes.forEach(node => {
+        const origText = node.nodeValue;
+        const highlightedHtml = highlightBothKeywordsInPlainText(origText, kw1, kw2, true);
+        if (highlightedHtml.includes("<mark")) {
+          const span = document.createElement("span");
+          span.innerHTML = highlightedHtml;
+          totalHighlighted += span.querySelectorAll("mark").length;
+          node.parentNode.replaceChild(span, node);
+        }
+      });
+      return totalHighlighted;
+    }
+
+    function debounce(fn, delay = 140) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    }
+
+    function base64DataUrlToUint8Array(dataUrl) {
+      let base64 = dataUrl;
+      let mime = "application/pdf";
+      const commaIdx = dataUrl.indexOf(',');
+      if (commaIdx !== -1) {
+        const header = dataUrl.substring(0, commaIdx);
+        const mimeMatch = header.match(/data:([^;]+);/);
+        if (mimeMatch) mime = mimeMatch[1];
+        base64 = dataUrl.substring(commaIdx + 1);
+      }
+      base64 = base64.replace(/\s/g, '');
+      const raw = window.atob(base64);
+      const len = raw.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = raw.charCodeAt(i);
+      }
+      return { bytes, mime };
+    }
+
+    function buildPreIndexedPages(fullText) {
+      const text = cleanAndNormalizeVietnameseText(fullText || "");
+      const pageBlocks = [];
+      const regex = /\[(Trang (\d+)|Sheet: ([^\]]+))\]/gi;
+      const matchesAll = [...text.matchAll(regex)];
+
+      if (matchesAll.length === 0) {
+        const nfcLower = toVietnameseLowerNFC(text);
+        const asciiLower = removeAccents(text);
+        return [{
+          pageLabel: "Trang 1",
+          pageNum: 1,
+          sheetName: "",
+          rawText: text,
+          nfcLowerText: nfcLower,
+          asciiLowerText: asciiLower,
+          length: Math.max(1, nfcLower.length)
+        }];
+      }
+
+      let lastIdx = 0;
+      let lastLabel = "Trang 1";
+      let lastPageNum = 1;
+      let lastSheet = "";
+
+      matchesAll.forEach((m, idx) => {
+        const start = m.index;
+        if (start > lastIdx) {
+          const chunk = text.substring(lastIdx, start);
+          if (chunk.trim()) {
+            const nfcLower = toVietnameseLowerNFC(chunk);
+            const asciiLower = removeAccents(chunk);
+            pageBlocks.push({
+              pageLabel: lastLabel,
+              pageNum: lastPageNum,
+              sheetName: lastSheet,
+              rawText: chunk,
+              nfcLowerText: nfcLower,
+              asciiLowerText: asciiLower,
+              length: Math.max(1, nfcLower.length)
+            });
+          }
+        }
+        lastLabel = m[1];
+        lastPageNum = m[2] ? parseInt(m[2], 10) : (idx + 1);
+        lastSheet = m[3] || "";
+        lastIdx = start + m[0].length;
+      });
+
+      const finalChunk = text.substring(lastIdx);
+      if (finalChunk.trim() || pageBlocks.length === 0) {
+        const nfcLower = toVietnameseLowerNFC(finalChunk);
+        const asciiLower = removeAccents(finalChunk);
+        pageBlocks.push({
+          pageLabel: lastLabel,
+          pageNum: lastPageNum,
+          sheetName: lastSheet,
+          rawText: finalChunk,
+          nfcLowerText: nfcLower,
+          asciiLowerText: asciiLower,
+          length: Math.max(1, nfcLower.length)
+        });
+      }
+      return pageBlocks;
+    }
+
+    async function syncFoldersToCloud() {
+      safeSetLocal('my_custom_folders_v42', JSON.stringify(customFolders));
+      try {
+        await setDoc(folderConfigDocRef, { folders: customFolders, updatedAt: Date.now() }, { merge: true });
+      } catch (e) {}
+    }
+
+    let isHealingRunning = false;
+    async function autoHealExcelAndWordDocumentsInBackground() {
+      if (isHealingRunning) return;
+      isHealingRunning = true;
+      let anyUpdated = false;
+
+      try {
+        for (const item of allDocuments) {
+          const fType = (item.fileType || "").toUpperCase();
+          if (!['XLSX', 'XLS', 'CSV', 'DOCX'].includes(fType)) continue;
+          if (item.indexVersion >= 2) continue;
+          if (!item.fileData && !item.hasChunkedFile) continue;
+
+          const healKey = `healed_v42_${item.docGroupId || item.id}`;
+          if (safeGetLocal(healKey) === '1' && !isAdmin()) continue;
+
+          try {
+            const decoded = await fetchOriginalBinary(item);
+            if (!decoded) continue;
+
+            let freshText = "";
+            if (['XLSX', 'XLS', 'CSV'].includes(fType)) {
+              const workbook = XLSX.read(decoded.bytes, { type: 'array' });
+              freshText = extractCleanTextFromExcelWorkbook(workbook);
+            } else if (fType === 'DOCX') {
+              const result = await mammoth.extractRawText({ arrayBuffer: decoded.bytes.buffer.slice(0) });
+              freshText = cleanAndNormalizeVietnameseText(result.value);
+            }
+
+            if (freshText && freshText.length > 10) {
+              item.content = freshText;
+              item.indexedPages = buildPreIndexedPages(freshText);
+              item.indexVersion = 2;
+              if (isAdmin()) {
+                await overwriteDocumentTextInCloud(item, freshText);
+              }
+              safeSetLocal(healKey, '1');
+              anyUpdated = true;
+            }
+          } catch (e) {
+            console.warn("Auto-heal warning for", item.title, e);
+          }
+        }
+      } finally {
+        isHealingRunning = false;
+      }
+
+      if (anyUpdated) {
+        performSearch();
+      }
+    }
+
+    async function loadDocuments() {
+      statusBadge.textContent = "Đang đồng bộ...";
+      errorBox.classList.add('hidden');
+      try {
+        const localSaved = safeGetLocal('my_custom_folders_v42') || safeGetLocal('my_custom_folders_v41') || safeGetLocal('my_custom_folders_v40') || safeGetLocal('my_custom_folders');
+        if (localSaved) {
+          try { customFolders = JSON.parse(localSaved); } catch (e) {}
+        }
+
+        const [snapshotRes, folderSnapRes] = await Promise.allSettled([
+          getDocs(colRef),
+          getDoc(folderConfigDocRef)
+        ]);
+
+        if (snapshotRes.status === 'rejected') {
+          throw snapshotRes.reason;
+        }
+
+        if (folderSnapRes.status === 'fulfilled' && folderSnapRes.value.exists()) {
+          const cloudFolders = folderSnapRes.value.data()?.folders;
+          if (Array.isArray(cloudFolders) && cloudFolders.length > 0) {
+            cloudFolders.forEach(cf => {
+              if (cf && !customFolders.includes(cf)) customFolders.push(cf);
+            });
+          }
+        }
+
+        const rawDocs = snapshotRes.value.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const groupedMap = new Map();
+        rawDocs.forEach(item => {
+          const cleanTitle = (item.title || "").replace(/\s*\(Phần \d+\/\d+\)$/i, "").trim();
+          const partMatch = (item.title || "").match(/\(Phần (\d+)\/(\d+)\)$/i);
+          const inferredPartIdx = item.partIndex !== undefined ? item.partIndex : (partMatch ? parseInt(partMatch[1], 10) - 1 : 0);
+          const groupKey = item.docGroupId || `${cleanTitle}__${item.fileName || ''}__${item.createdAt || ''}`;
+
+          if (!groupedMap.has(groupKey)) {
+            groupedMap.set(groupKey, {
+              ...item,
+              title: cleanTitle,
+              category: item.category || "Tài liệu chung",
+              allDocIds: [item.id],
+              parts: [{ index: inferredPartIdx, text: item.content || "" }]
+            });
+          } else {
+            const existing = groupedMap.get(groupKey);
+            existing.allDocIds.push(item.id);
+            existing.parts.push({ index: inferredPartIdx, text: item.content || "" });
+            if (item.hasChunkedFile) existing.hasChunkedFile = true;
+            if (item.fileData) existing.fileData = item.fileData;
+            if (item.docGroupId) existing.docGroupId = item.docGroupId;
+            if (item.indexVersion) existing.indexVersion = item.indexVersion;
+          }
+        });
+
+        let sumLengths = 0;
+        let countPages = 0;
+
+        allDocuments = Array.from(groupedMap.values()).map(group => {
+          group.parts.sort((a, b) => a.index - b.index);
+          group.content = cleanAndNormalizeVietnameseText(group.parts.map(p => p.text).join("\n"));
+          group.nfcTitle = toVietnameseLowerNFC(group.title);
+          group.asciiTitle = removeAccents(group.title);
+          group.indexedPages = buildPreIndexedPages(group.content);
+
+          group.indexedPages.forEach(p => {
+            sumLengths += p.length;
+            countPages++;
+          });
+
+          if (group.category && !customFolders.includes(group.category)) {
+            customFolders.push(group.category);
+          }
+          openFoldersState.add(group.category);
+          return group;
+        });
+
+        totalPagesGlobal = Math.max(1, countPages);
+        avgPageLengthGlobal = countPages > 0 ? (sumLengths / countPages) : 1200;
+
+        allDocuments.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+        if (customFolders.length === 0) customFolders = ["Tài liệu chung"];
+        customFolders.forEach(f => openFoldersState.add(f));
+        safeSetLocal('my_custom_folders_v42', JSON.stringify(customFolders));
+
+        totalDocsCountBadge.textContent = `${allDocuments.length}`;
+        statusBadge.textContent = `Đã đồng bộ (${allDocuments.length} tài liệu)`;
+        statusBadge.className = "hidden md:inline-flex items-center text-xs bg-emerald-950/80 text-emerald-300 px-3 py-1.5 rounded-full font-semibold border border-emerald-700/60";
+
+        renderFolderTree();
+        performSearch();
+
+        autoHealExcelAndWordDocumentsInBackground();
+      } catch (err) {
+        console.error(err);
+        statusBadge.textContent = "Lỗi kết nối";
+        statusBadge.className = "hidden md:inline-flex items-center text-xs bg-red-900 text-red-200 px-3 py-1.5 rounded-full font-semibold";
+        errorBox.classList.remove('hidden');
+        errorBox.innerHTML = `<p class="font-bold">Không thể kết nối dữ liệu hệ thống: ${err.message}</p>`;
+      }
+    }
+
+    reloadBtn.addEventListener('click', loadDocuments);
+
+    function getFileBadgeMini(fileType) {
+      const t = (fileType || "TXT").toUpperCase();
+      if (t === 'PDF') return `<span class="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.2 rounded shrink-0">PDF</span>`;
+      if (['DOCX', 'DOC'].includes(t)) return `<span class="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded shrink-0">WORD</span>`;
+      if (['XLSX', 'XLS', 'CSV'].includes(t)) return `<span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded shrink-0">EXCEL</span>`;
+      if (['PNG', 'JPG', 'JPEG', 'WEBP'].includes(t)) return `<span class="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded shrink-0">ẢNH</span>`;
+      return `<span class="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded shrink-0">TXT</span>`;
+    }
+
+    function renderFolderTree() {
+      const rawFilter = treeFilterInput.value.trim();
+      const filterMatcher = buildPhraseMatcher(rawFilter);
+      const isSearchingActive = currentSearchMatchedDocsMap.size > 0;
+      const adminMode = isAdmin();
+      let html = "";
+
+      customFolders.forEach((folderName, fIndex) => {
+        const docsInFolder = allDocuments.filter(d => {
+          if ((d.category || "Tài liệu chung") !== folderName) return false;
+          if (!filterMatcher) return true;
+          const titleTarget = filterMatcher.isAccented ? d.nfcTitle : d.asciiTitle;
+          const fileTarget = filterMatcher.isAccented ? toVietnameseLowerNFC(d.fileName || "") : removeAccents(d.fileName || "");
+          const rx = new RegExp(filterMatcher.regex.source, 'iu');
+          return rx.test(titleTarget) || rx.test(fileTarget) || titleTarget.includes(filterMatcher.targetPhrase) || fileTarget.includes(filterMatcher.targetPhrase);
+        });
+
+        if (filterMatcher && docsInFolder.length === 0) return;
+
+        const matchedDocsInThisFolder = docsInFolder.filter(d => currentSearchMatchedDocsMap.has(d.id));
+        const hasSearchMatchInFolder = matchedDocsInThisFolder.length > 0;
+
+        const isOpen = openFoldersState.has(folderName) || Boolean(filterMatcher) || hasSearchMatchInFolder;
+        const isSelected = currentSelectedFolder === folderName;
+
+        const folderBorderClass = hasSearchMatchInFolder
+          ? 'border-amber-400 bg-amber-50/25 shadow-sm ring-1 ring-amber-200/70'
+          : (isSelected ? 'border-sky-500 bg-sky-50/30 shadow-sm' : 'border-slate-200 bg-white');
+
+        const dragEventsHtml = adminMode
+          ? `ondragover="window.onFolderDragOver(event, this)" ondragleave="window.onFolderDragLeave(event, this)" ondrop="window.onFolderDropByIdx(event, this, ${fIndex})"`
+          : ``;
+
+        html += `
+          <div class="rounded-lg border ${folderBorderClass} overflow-hidden transition"
+               data-folder-idx="${fIndex}"
+               ${dragEventsHtml}>
+            
+            <div class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-slate-50 transition"
+                 onclick="window.clickFolderHeaderByIdx(${fIndex})">
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <span class="text-[10px] text-slate-400 w-3">${isOpen ? '▼' : '▶'}</span>
+                <span class="font-bold text-xs sm:text-sm ${hasSearchMatchInFolder ? 'text-amber-900' : (isSelected ? 'text-sky-800' : 'text-slate-800')} truncate">${escapeHtml(folderName)}</span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation()">
+                ${hasSearchMatchInFolder ? `
+                  <span class="text-[10px] font-extrabold bg-amber-200/90 text-amber-950 px-2 py-0.5 rounded-full" title="Số tài liệu khớp từ khóa trong thư mục này">
+                    ${matchedDocsInThisFolder.length} khớp
+                  </span>
+                ` : ''}
+                <span class="text-[11px] font-bold ${docsInFolder.length > 0 ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-400'} px-2 py-0.5 rounded-full">${docsInFolder.length}</span>
+                ${adminMode ? `
+                  <button type="button" onclick="window.promptRenameFolderByIdx(${fIndex})" class="text-slate-400 hover:text-sky-700 text-xs px-1.5 py-0.5 rounded hover:bg-slate-100 cursor-pointer" title="Đổi tên thư mục">Sửa</button>
+                  <button type="button" onclick="window.promptDeleteFolderByIdx(${fIndex})" class="text-slate-400 hover:text-red-600 text-xs px-1.5 py-0.5 rounded hover:bg-red-50 cursor-pointer" title="Xóa thư mục">Xóa</button>
+                ` : ''}
+              </div>
+            </div>
+
+            ${isOpen ? `
+              <div class="border-t border-slate-100 bg-slate-50/50 pl-3 sm:pl-4 pr-2 py-1.5 space-y-1">
+                ${docsInFolder.length === 0 ? `
+                  <div class="text-xs text-slate-400 italic py-1.5 pl-2">Chưa có tài liệu trong thư mục này</div>
+                ` : docsInFolder.map(d => {
+                  const isSelectedDoc = selectedDocIdInTree === d.id;
+                  const matchMeta = currentSearchMatchedDocsMap.get(d.id);
+
+                  let docItemStyle = 'hover:bg-white hover:shadow-sm text-slate-700 border border-transparent';
+                  if (matchMeta) {
+                    docItemStyle = matchMeta.isFuzzy
+                      ? 'bg-purple-50/90 text-purple-950 font-bold border border-purple-300 shadow-sm'
+                      : 'bg-amber-50/95 text-slate-900 font-bold border border-amber-300 shadow-sm';
+                  } else if (isSelectedDoc) {
+                    docItemStyle = 'bg-sky-100/80 text-sky-950 font-semibold border border-sky-300';
+                  } else if (isSearchingActive) {
+                    docItemStyle = 'opacity-55 hover:opacity-100 hover:bg-white text-slate-600 border border-transparent';
+                  }
+
+                  const targetOpenPage = matchMeta ? matchMeta.firstPageNum : 1;
+                  const dragItemHtml = adminMode ? `draggable="true" ondragstart="window.onDocDragStart(event, '${d.id}')"` : ``;
+
+                  return `
+                    <div ${dragItemHtml}
+                         onclick="window.clickFileInTree('${d.id}', ${targetOpenPage})"
+                         class="group flex items-center justify-between gap-2 px-2 sm:px-2.5 py-2 sm:py-1.5 rounded-md cursor-pointer text-xs transition ${docItemStyle}"
+                         title="Nhấn để mở tài liệu">
+                      <div class="flex items-center gap-2 min-w-0 flex-1">
+                        ${getFileBadgeMini(d.fileType)}
+                        <span class="truncate">${escapeHtml(d.title)}</span>
+                      </div>
+                      <div class="flex items-center gap-1 shrink-0">
+                        ${matchMeta ? `
+                          <span class="text-[10px] font-extrabold ${matchMeta.isFuzzy ? 'bg-purple-200 text-purple-900' : 'bg-amber-200/90 text-amber-950'} px-1.5 py-0.5 rounded shrink-0">
+                            ${matchMeta.pageCount} trang
+                          </span>
+                        ` : ''}
+                        ${adminMode ? `
+                          <div class="flex lg:hidden lg:group-hover:flex items-center gap-1" onclick="event.stopPropagation()">
+                            <button type="button" onclick="window.openMoveModal('${d.id}')" class="text-[11px] text-slate-500 hover:text-sky-700 bg-slate-100 hover:bg-sky-50 px-1.5 py-0.5 rounded font-medium cursor-pointer" title="Chuyển sang thư mục khác">Chuyển</button>
+                            <button type="button" onclick="window.deleteDocument('${d.id}')" class="text-[11px] text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 px-1.5 py-0.5 rounded font-bold cursor-pointer" title="Xóa tài liệu">✕</button>
+                          </div>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      folderTreeContainer.innerHTML = html || `<div class="text-xs text-slate-400 italic text-center py-8">Không tìm thấy tài liệu phù hợp.</div>`;
+    }
+
+    treeFilterInput.addEventListener('input', renderFolderTree);
+
+    window.clickFolderHeaderByIdx = (fIdx) => {
+      const folderName = customFolders[fIdx];
+      if (!folderName) return;
+      if (openFoldersState.has(folderName) && currentSelectedFolder === folderName) {
+        openFoldersState.delete(folderName);
+      } else {
+        openFoldersState.add(folderName);
+      }
+      window.selectFolder(folderName);
+    };
+
+    window.selectFolder = (folderName) => {
+      currentSelectedFolder = folderName;
+      activeFolderHeading.textContent = folderName === 'ALL'
+        ? 'Phạm vi tra cứu: Tất cả thư mục • Chọn tài liệu trong danh sách kết quả để mở thẳng trang khớp'
+        : `Phạm vi tra cứu: Thư mục "${folderName}" • Chọn tài liệu trong danh sách kết quả để mở thẳng trang khớp`;
+      performSearch();
+    };
+
+    window.expandAllFolders = (expand) => {
+      if (expand) customFolders.forEach(f => openFoldersState.add(f));
+      else openFoldersState.clear();
+      renderFolderTree();
+    };
+
+    window.clickFileInTree = (docId, targetPage = 1) => {
+      selectedDocIdInTree = docId;
+      renderFolderTree();
+      window.openOriginalAtPage(docId, targetPage);
+    };
+
+    window.onDocDragStart = (e, docId) => {
+      if (!isAdmin()) return;
+      e.dataTransfer.setData("text/plain", docId);
+    };
+    window.onFolderDragOver = (e, el) => {
+      if (!isAdmin()) return;
+      e.preventDefault();
+      el.classList.add('folder-drop-hover');
+    };
+    window.onFolderDragLeave = (e, el) => {
+      el.classList.remove('folder-drop-hover');
+    };
+    window.onFolderDropByIdx = async (e, el, fIdx) => {
+      if (!isAdmin()) return;
+      e.preventDefault();
+      el.classList.remove('folder-drop-hover');
+      const targetFolder = customFolders[fIdx];
+      const docId = e.dataTransfer.getData("text/plain");
+      if (docId && targetFolder) await executeMoveDocument(docId, targetFolder);
+    };
+
+    window.promptCreateFolder = async (fromUploadModal = false, fromMoveModal = false) => {
+      if (!isAdmin()) return;
+      const name = prompt("Nhập tên thư mục mới:");
+      if (!name || !name.trim()) return;
+      const cleanName = name.trim();
+      if (!customFolders.includes(cleanName)) {
+        customFolders.push(cleanName);
+        openFoldersState.add(cleanName);
+        await syncFoldersToCloud();
+      }
+      renderFolderTree();
+      if (fromUploadModal) updateUploadFolderDropdown(cleanName);
+      if (fromMoveModal) updateMoveFolderDropdown(cleanName);
+    };
+
+    window.promptRenameFolderByIdx = async (fIdx) => {
+      if (!isAdmin()) return;
+      const oldName = customFolders[fIdx];
+      if (!oldName) return;
+      const name = prompt(`Đổi tên thư mục "${oldName}" thành:`, oldName);
+      if (!name || !name.trim() || name.trim() === oldName) return;
+      const newName = name.trim();
+      if (customFolders.includes(newName)) {
+        alert("Tên thư mục này đã tồn tại!");
+        return;
+      }
+
+      customFolders[fIdx] = newName;
+      openFoldersState.add(newName);
+      await syncFoldersToCloud();
+
+      const docsToUpdate = allDocuments.filter(d => (d.category || "Tài liệu chung") === oldName);
+      for (const d of docsToUpdate) {
+        for (const idItem of (d.allDocIds || [d.id])) {
+          await updateDoc(doc(db, "tai_lieu_trien_khai", idItem), { category: newName });
+        }
+      }
+      if (currentSelectedFolder === oldName) currentSelectedFolder = newName;
+      await loadDocuments();
+    };
+
+    window.promptDeleteFolderByIdx = async (fIdx) => {
+      if (!isAdmin()) return;
+      const folderName = customFolders[fIdx];
+      if (!folderName) return;
+      const docsInFolder = allDocuments.filter(d => (d.category || "Tài liệu chung") === folderName);
+      if (docsInFolder.length > 0) {
+        alert(`Thư mục "${folderName}" đang chứa ${docsInFolder.length} tài liệu.\nVui lòng chuyển các tài liệu sang thư mục khác hoặc xóa tài liệu trước khi xóa thư mục!`);
+        return;
+      }
+      if (customFolders.length <= 1) {
+        alert("Cần giữ lại ít nhất 1 thư mục trong hệ thống!");
+        return;
+      }
+      if (!confirm(`Bạn có chắc muốn xóa thư mục "${folderName}"?`)) return;
+
+      customFolders.splice(fIdx, 1);
+      await syncFoldersToCloud();
+      if (currentSelectedFolder === folderName) currentSelectedFolder = "ALL";
+      renderFolderTree();
+      performSearch();
+    };
+
+    function updateMoveFolderDropdown(selectedVal) {
+      const sel = document.getElementById('moveTargetSelect');
+      sel.innerHTML = customFolders.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+      if (selectedVal && customFolders.includes(selectedVal)) sel.value = selectedVal;
+    }
+
+    window.openMoveModal = (docId) => {
+      if (!isAdmin()) return;
+      const item = allDocuments.find(x => x.id === docId);
+      if (!item) return;
+      docIdPendingMove = docId;
+      document.getElementById('moveModalDocTitle').textContent = item.title;
+      updateMoveFolderDropdown(item.category || "Tài liệu chung");
+      const m = document.getElementById('moveFolderModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    };
+
+    window.closeMoveModal = () => {
+      const m = document.getElementById('moveFolderModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      docIdPendingMove = null;
+    };
+
+    async function executeMoveDocument(docId, targetFolder) {
+      if (!isAdmin()) return;
+      const item = allDocuments.find(x => x.id === docId);
+      if (!item || !targetFolder) return;
+      if ((item.category || "Tài liệu chung") === targetFolder) {
+        window.closeMoveModal();
+        return;
+      }
+      try {
+        for (const idItem of (item.allDocIds || [item.id])) {
+          await updateDoc(doc(db, "tai_lieu_trien_khai", idItem), { category: targetFolder });
+        }
+        openFoldersState.add(targetFolder);
+        window.closeMoveModal();
+        await loadDocuments();
+      } catch (err) {
+        alert("Lỗi khi di chuyển tài liệu: " + err.message);
+      }
+    }
+
+    document.getElementById('confirmMoveBtn').addEventListener('click', () => {
+      if (!isAdmin()) return;
+      const targetFolder = document.getElementById('moveTargetSelect').value;
+      if (docIdPendingMove && targetFolder) executeMoveDocument(docIdPendingMove, targetFolder);
+    });
+
+    // =========================================================================
+    // 3. BỘ LỌC TIỀN XỬ LÝ ẢNH 3 BƯỚC + KHỞI TẠO LÕI TESSDATA_BEST CHUYÊN BIỆT TIẾNG VIỆT ('vie')
+    // =========================================================================
+
+    function applyAutomaticOptimalFilterToCanvas(canvas) {
+      const w = canvas.width;
+      const h = canvas.height;
+      if (!w || !h) return;
+
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      const grayBuf = new Float32Array(w * h);
+
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        const maxC = Math.max(r, g, b);
+        const minC = Math.min(r, g, b);
+        const saturation = maxC - minC;
+
+        const isRedStamp = (r > 105 && (r - g) > 38 && (r - b) > 38);
+        const isColorWatermark = (saturation > 55 && maxC > 140);
+
+        if (isRedStamp || isColorWatermark) {
+          grayBuf[p] = 255;
+        } else {
+          grayBuf[p] = 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+      }
+
+      const sharpenedBuf = new Float32Array(w * h);
+      sharpenedBuf.set(grayBuf);
+
+      for (let y = 1; y < h - 1; y++) {
+        const rowOffset = y * w;
+        for (let x = 1; x < w - 1; x++) {
+          const idx = rowOffset + x;
+          const center = grayBuf[idx];
+          const top = grayBuf[idx - w];
+          const bottom = grayBuf[idx + w];
+          const left = grayBuf[idx - 1];
+          const right = grayBuf[idx + 1];
+
+          const val = center * 3.4 - 0.6 * (top + bottom + left + right);
+          sharpenedBuf[idx] = val < 0 ? 0 : (val > 255 ? 255 : val);
+        }
+      }
+
+      const contrast = 35;
+      const threshold = 190;
+      const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        let gray = contrastFactor * (sharpenedBuf[p] - 128) + 128;
+        gray = Math.max(0, Math.min(255, gray));
+
+        let val;
+        if (gray >= threshold) {
+          val = 255;
+        } else if (gray < threshold - 55) {
+          val = Math.max(0, (gray - 25) * 0.65);
+        } else {
+          val = ((gray - (threshold - 55)) / 55) * 255;
+        }
+
+        data[i] = data[i + 1] = data[i + 2] = val;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    async function createBestVietnameseOcrWorker(onLogger) {
+      let worker;
+      try {
+        worker = await Tesseract.createWorker('vie', 1, {
+          langPath: 'https://tessdata.projectnaptha.com/4.0.0_best',
+          logger: onLogger
+        });
+      } catch (err) {
+        console.warn("Không thể tải gói 4.0.0_best, tự động chuyển sang gói vie tiêu chuẩn:", err);
+        worker = await Tesseract.createWorker('vie', 1, {
+          logger: onLogger
+        });
+      }
+
+      try {
+        await worker.setParameters({
+          preserve_interword_spaces: '1'
+        });
+      } catch (e) {}
+
+      return worker;
+    }
+
+    function reconstructTextFromPdfItems(items) {
+      if (!items || items.length === 0) return "";
+      let pageStr = "";
+      let lastXEnd = null;
+      let lastY = null;
+
+      for (const item of items) {
+        const str = item.str;
+        if (!str) continue;
+        const x = item.transform ? item.transform[4] : null;
+        const y = item.transform ? item.transform[5] : null;
+        const fontH = item.transform ? Math.max(8, Math.hypot(item.transform[2], item.transform[3])) : 10;
+
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > fontH * 0.65) {
+          pageStr += "\n";
+        } else if (lastXEnd !== null && x !== null) {
+          const gap = x - lastXEnd;
+          if (gap > fontH * 0.22 && !pageStr.endsWith(" ") && !str.startsWith(" ")) {
+            pageStr += " ";
+          }
+        }
+
+        pageStr += str;
+        if (x !== null) {
+          const w = item.width || (str.length * fontH * 0.5);
+          lastXEnd = x + w;
+        }
+        if (y !== null) lastY = y;
+      }
+      return cleanAndNormalizeVietnameseText(pageStr);
+    }
+
+    async function extractPDFBufferWithSmartOCR(arrayBuffer, onProgressMsg) {
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      let ocrWorker = null;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        if (onProgressMsg) onProgressMsg(`Đang kiểm tra & trích xuất trang ${i}/${pdf.numPages}...`);
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const reconstructed = reconstructTextFromPdfItems(content.items || []);
+
+        const realCharCount = reconstructed.replace(/\s+/g, '').length;
+
+        if (realCharCount >= 65) {
+          fullText += `[Trang ${i}] ` + reconstructed.trim() + "\n\n";
+        } else {
+          if (!ocrWorker) {
+            if (onProgressMsg) onProgressMsg(`Đang nạp mô hình tessdata_best tiếng Việt (vie) Siêu Nét 3.0x (Trang ${i}/${pdf.numPages})...`);
+            ocrWorker = await createBestVietnameseOcrWorker(m => {
+              if (m.status === 'recognizing text' && onProgressMsg) {
+                onProgressMsg(`Đang quét OCR (tessdata_best vie • 3.0x) trang ${i}/${pdf.numPages} (${Math.round(m.progress * 100)}%)...`);
+              }
+            });
+          }
+
+          const viewport = page.getViewport({ scale: 3.0 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+          applyAutomaticOptimalFilterToCanvas(canvas);
+          const imgDataUrl = canvas.toDataURL('image/png');
+          canvas.width = 0;
+          canvas.height = 0;
+
+          const ret = await ocrWorker.recognize(imgDataUrl);
+          const cleanedOcr = cleanAndNormalizeVietnameseText(ret.data.text || "");
+
+          fullText += `[Trang ${i}] ` + cleanedOcr.trim() + "\n\n";
+        }
+      }
+
+      if (ocrWorker) {
+        await ocrWorker.terminate();
+      }
+      return fullText;
+    }
+
+    async function extractImageFileWithSuperOCR(fileOrBlob, onProgressMsg) {
+      const imgBitmap = await createImageBitmap(fileOrBlob);
+      const scale = imgBitmap.width < 1500 ? 3.0 : (imgBitmap.width < 2400 ? 2.0 : 1.35);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(imgBitmap.width * scale);
+      canvas.height = Math.round(imgBitmap.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgBitmap, 0, 0, canvas.width, canvas.height);
+
+      applyAutomaticOptimalFilterToCanvas(canvas);
+      const dataUrl = canvas.toDataURL('image/png');
+      canvas.width = 0;
+      canvas.height = 0;
+
+      if (onProgressMsg) onProgressMsg(`Đang nạp mô hình tessdata_best tiếng Việt (vie)...`);
+      const worker = await createBestVietnameseOcrWorker(m => {
+        if (m.status === 'recognizing text' && onProgressMsg) {
+          onProgressMsg(`Đang quét OCR ảnh (tessdata_best vie • 3.0x): ${Math.round(m.progress * 100)}%...`);
+        }
+      });
+      const ret = await worker.recognize(dataUrl);
+      await worker.terminate();
+      return cleanAndNormalizeVietnameseText(ret.data.text || "");
+    }
+
+    async function overwriteDocumentTextInCloud(item, newFullText) {
+      const textChunks = [];
+      for (let i = 0; i < newFullText.length; i += MAX_TEXT_CHARS) {
+        textChunks.push(newFullText.substring(i, i + MAX_TEXT_CHARS));
+      }
+      if (textChunks.length === 0) textChunks.push("");
+
+      const oldDocIds = [...(item.allDocIds || [item.id])];
+
+      if (textChunks.length === 1 && oldDocIds.length === 1) {
+        await updateDoc(doc(db, "tai_lieu_trien_khai", oldDocIds[0]), {
+          content: textChunks[0],
+          indexVersion: 2
+        });
+      } else {
+        const newDocIds = [];
+        for (let tIdx = 0; tIdx < textChunks.length; tIdx++) {
+          const addedRef = await addDoc(colRef, {
+            docGroupId: item.docGroupId || ("doc_" + Date.now()),
+            partIndex: tIdx,
+            totalParts: textChunks.length,
+            title: item.title,
+            category: item.category || "Tài liệu chung",
+            fileType: item.fileType,
+            fileName: item.fileName || "Tệp gốc",
+            fileSize: item.fileSize || 0,
+            hasChunkedFile: Boolean(item.hasChunkedFile),
+            totalFileChunks: item.totalFileChunks || 0,
+            fileData: item.fileData || null,
+            indexVersion: 2,
+            content: textChunks[tIdx],
+            createdAt: item.createdAt || new Date().toLocaleString('vi-VN'),
+            createdAtMs: item.createdAtMs || Date.now(),
+            timestamp: serverTimestamp()
+          });
+          newDocIds.push(addedRef.id);
+        }
+
+        for (const oldId of oldDocIds) {
+          await deleteDoc(doc(db, "tai_lieu_trien_khai", oldId));
+        }
+        item.allDocIds = newDocIds;
+        item.id = newDocIds[0];
+      }
+
+      item.content = newFullText;
+      item.indexVersion = 2;
+      item.indexedPages = buildPreIndexedPages(newFullText);
+    }
+
+    function updateUploadFolderDropdown(selectedVal) {
+      docCategorySelect.innerHTML = customFolders.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+      if (selectedVal && customFolders.includes(selectedVal)) {
+        docCategorySelect.value = selectedVal;
+      } else if (currentSelectedFolder !== 'ALL' && customFolders.includes(currentSelectedFolder)) {
+        docCategorySelect.value = currentSelectedFolder;
+      }
+    }
+
+    function resetUploadFormFields() {
+      docTitle.value = "";
+      docContent.value = "";
+      fileInput.value = "";
+      currentFileType = "TEXT";
+      currentFileName = "";
+      currentFileSize = 0;
+      currentFileBase64Full = "";
+      charCount.textContent = "0 ký tự";
+      extractProgress.classList.add('hidden');
+      extractProgress.innerHTML = "";
+    }
+
+    window.openUploadModal = () => {
+      if (!isAdmin()) return;
+      resetUploadFormFields();
+      updateUploadFolderDropdown();
+      const m = document.getElementById('uploadModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    };
+
+    window.closeUploadModal = () => {
+      const m = document.getElementById('uploadModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    };
+
+    docContent.addEventListener('input', () => {
+      charCount.textContent = `${docContent.value.length.toLocaleString()} ký tự`;
+    });
+
+    function readFullFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    fileInput.addEventListener('change', async (e) => {
+      if (!isAdmin()) return;
+      const file = e.target.files[0];
+      if (!file) return;
+      currentFileName = file.name;
+      currentFileSize = file.size;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      currentFileType = ext.toUpperCase();
+      extractProgress.classList.remove('hidden');
+      extractProgress.textContent = `Đang phân tích tệp ${file.name}...`;
+
+      try {
+        currentFileBase64Full = await readFullFileAsDataURL(file);
+        let extractedText = "";
+
+        if (ext === 'pdf') {
+          const ab = await file.arrayBuffer();
+          extractedText = await extractPDFBufferWithSmartOCR(ab, (msg) => {
+            extractProgress.textContent = msg;
+          });
+        } else if (ext === 'docx') {
+          const ab = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer: ab });
+          extractedText = cleanAndNormalizeVietnameseText(result.value);
+        } else if (['xlsx', 'xls', 'csv'].includes(ext)) {
+          const ab = await file.arrayBuffer();
+          const workbook = XLSX.read(ab, { type: 'array' });
+          extractedText = extractCleanTextFromExcelWorkbook(workbook);
+        } else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+          extractedText = await extractImageFileWithSuperOCR(file, (msg) => {
+            extractProgress.textContent = msg;
+          });
+        } else if (ext === 'txt') {
+          extractedText = cleanAndNormalizeVietnameseText(await file.text());
+        }
+
+        extractedText = extractedText.replace(/[ \t]{2,}/g, ' ').trim();
+        docContent.value = extractedText;
+        charCount.textContent = `${docContent.value.length.toLocaleString()} ký tự`;
+        extractProgress.innerHTML = `Đã trích xuất & chuẩn hóa tối ưu (tessdata_best vie • 3.0x • 3x3 Sharpen) <b>${docContent.value.length.toLocaleString()} ký tự</b> từ tệp <i>${escapeHtml(file.name)}</i> (${(file.size / 1024).toFixed(0)} KB).`;
+      } catch (err) {
+        console.error(err);
+        extractProgress.textContent = `Lỗi đọc tệp: ${err.message}`;
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      if (!isAdmin()) return;
+      let title = docTitle.value.trim();
+      const content = cleanAndNormalizeVietnameseText(docContent.value.trim());
+      const category = docCategorySelect.value || "Tài liệu chung";
+
+      if (!content) {
+        alert("Vui lòng chọn tệp tài liệu hoặc nhập nội dung văn bản trước khi lưu!");
+        return;
+      }
+
+      if (!title) {
+        if (currentFileName) {
+          title = currentFileName.replace(/\.[^/.]+$/, "");
+        } else {
+          title = "Tài liệu " + new Date().toLocaleDateString('vi-VN');
+        }
+      }
+
+      saveBtn.disabled = true;
+
+      try {
+        const docGroupId = "doc_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+        const nowStr = new Date().toLocaleString('vi-VN');
+        const baseMs = Date.now();
+
+        let hasSavedFile = false;
+        let totalFileChunks = 0;
+
+        if (currentFileBase64Full) {
+          const fileChunks = [];
+          for (let i = 0; i < currentFileBase64Full.length; i += MAX_BASE64_CHARS) {
+            fileChunks.push(currentFileBase64Full.substring(i, i + MAX_BASE64_CHARS));
+          }
+          totalFileChunks = fileChunks.length;
+
+          for (let fIdx = 0; fIdx < fileChunks.length; fIdx++) {
+            saveBtn.textContent = `Đang lưu tệp gốc (${Math.round(((fIdx + 1) / fileChunks.length) * 100)}%)...`;
+            await addDoc(fileChunksColRef, {
+              docGroupId: docGroupId,
+              chunkIndex: fIdx,
+              totalChunks: fileChunks.length,
+              fileName: currentFileName || "tailieu.pdf",
+              data: fileChunks[fIdx]
+            });
+          }
+          hasSavedFile = true;
+          try {
+            binaryCache.set(docGroupId, base64DataUrlToUint8Array(currentFileBase64Full));
+          } catch (e) {}
+        }
+
+        const textChunks = [];
+        for (let i = 0; i < content.length; i += MAX_TEXT_CHARS) {
+          textChunks.push(content.substring(i, i + MAX_TEXT_CHARS));
+        }
+
+        for (let tIdx = 0; tIdx < textChunks.length; tIdx++) {
+          saveBtn.textContent = `Đang lưu dữ liệu (${tIdx + 1}/${textChunks.length})...`;
+          await addDoc(colRef, {
+            docGroupId: docGroupId,
+            partIndex: tIdx,
+            totalParts: textChunks.length,
+            title: title,
+            category: category,
+            fileType: currentFileType,
+            fileName: currentFileName || "Văn bản trực tiếp",
+            fileSize: currentFileSize || 0,
+            hasChunkedFile: hasSavedFile,
+            totalFileChunks: totalFileChunks,
+            indexVersion: 2,
+            content: textChunks[tIdx],
+            createdAt: nowStr,
+            createdAtMs: baseMs,
+            timestamp: serverTimestamp()
+          });
+        }
+
+        safeSetLocal(`healed_v42_${docGroupId}`, '1');
+        openFoldersState.add(category);
+        resetUploadFormFields();
+        window.closeUploadModal();
+        await loadDocuments();
+      } catch (err) {
+        alert("Lỗi khi lưu tài liệu: " + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Lưu tài liệu";
+      }
+    });
+
+    // =========================================================================
+    // 4. BỘ TÌM KIẾM 2 Ô CHÍNH XÁC + LINH HOẠT SỐ & HIỂN THỊ KẾT QUẢ TỐI ƯU MOBILE/DESKTOP
+    // =========================================================================
+
+    window.clearSearchBox = (boxNum) => {
+      if (boxNum === 1 || boxNum === 0) searchInput1.value = "";
+      if (boxNum === 2 || boxNum === 0) searchInput2.value = "";
+      performSearch();
+    };
+
+    function computeTwoBoxProximityBonus(hits1, hits2) {
+      if (!hits1 || !hits2 || hits1.length === 0 || hits2.length === 0) return 0;
+      let minDistance = Infinity;
+      for (let i = 0; i < hits1.length; i++) {
+        for (let j = 0; j < hits2.length; j++) {
+          const dist = Math.abs(hits1[i].pos - hits2[j].pos);
+          if (dist < minDistance) minDistance = dist;
+        }
+      }
+      if (minDistance === Infinity) return 0;
+      return 12.0 / (1 + minDistance / 80);
+    }
+
+    function computePageScoreBM25(pageObj, hits1, hits2, idf1, idf2, isAdjacentPairMatch) {
+      let score = 0;
+      const docLen = pageObj.length || 1;
+
+      if (hits1 && hits1.length > 0) {
+        const tf1 = hits1.length;
+        const num1 = tf1 * (BM25_K1 + 1);
+        const den1 = tf1 + BM25_K1 * (1 - BM25_B + BM25_B * (docLen / avgPageLengthGlobal));
+        score += idf1 * (num1 / den1);
+      }
+
+      if (hits2 && hits2.length > 0) {
+        const tf2 = hits2.length;
+        const num2 = tf2 * (BM25_K1 + 1);
+        const den2 = tf2 + BM25_K1 * (1 - BM25_B + BM25_B * (docLen / avgPageLengthGlobal));
+        score += idf2 * (num2 / den2);
+      }
+
+      if (hits1 && hits1.length > 0 && hits2 && hits2.length > 0) {
+        score += 5.0 + computeTwoBoxProximityBonus(hits1, hits2);
+      } else if (isAdjacentPairMatch) {
+        score += 2.5;
+      }
+
+      return score;
+    }
+
+    function performSearch() {
+      try {
+        const kw1 = searchInput1.value.trim();
+        const kw2 = searchInput2.value.trim();
+
+        clearBtn1.classList.toggle('hidden', !kw1);
+        clearBtn2.classList.toggle('hidden', !kw2);
+        clearAllSearchBtn.classList.toggle('hidden', !kw1 && !kw2);
+
+        const matcher1 = buildPhraseMatcher(kw1);
+        const matcher2 = buildPhraseMatcher(kw2);
+
+        currentSearchMatchedDocsMap.clear();
+
+        if (!matcher1 && !matcher2) {
+          resultCount.textContent = "Nhập từ khóa để tra cứu";
+          resultsList.innerHTML = "";
+          renderFolderTree();
+          return;
+        }
+
+        const folderDocs = allDocuments.filter(d =>
+          currentSelectedFolder === "ALL" || (d.category || "Tài liệu chung") === currentSelectedFolder
+        );
+
+        let pagesWithPhrase1 = 0;
+        let pagesWithPhrase2 = 0;
+        const docPageHitsCache = new Map();
+
+        folderDocs.forEach(d => {
+          const pages = d.indexedPages || [];
+          const pHitsList = pages.map(p => {
+            const h1 = matcher1 ? findPhraseOccurrencesInPage(p, matcher1) : [];
+            const h2 = matcher2 ? findPhraseOccurrencesInPage(p, matcher2) : [];
+            const fuzzy1 = (matcher1 && matcher1.isAccented && h1.length === 0) ? findFuzzyOcrFallbackOccurrencesInPage(p, matcher1) : [];
+            const fuzzy2 = (matcher2 && matcher2.isAccented && h2.length === 0) ? findFuzzyOcrFallbackOccurrencesInPage(p, matcher2) : [];
+
+            if (h1.length > 0) pagesWithPhrase1++;
+            if (h2.length > 0) pagesWithPhrase2++;
+            return { h1, h2, fuzzy1, fuzzy2 };
+          });
+          docPageHitsCache.set(d.id, pHitsList);
+        });
+
+        const idf1 = matcher1 ? Math.max(0.1, Math.log(1 + (totalPagesGlobal - pagesWithPhrase1 + 0.5) / (pagesWithPhrase1 + 0.5))) : 0;
+        const idf2 = matcher2 ? Math.max(0.1, Math.log(1 + (totalPagesGlobal - pagesWithPhrase2 + 0.5) / (pagesWithPhrase2 + 0.5))) : 0;
+
+        const exactMatchedItems = [];
+        const fuzzyOcrMatchedItems = [];
+
+        folderDocs.forEach(d => {
+          const pages = d.indexedPages || [];
+          const pHitsList = docPageHitsCache.get(d.id) || [];
+          const validExactPages = new Map();
+          const validFuzzyPages = new Map();
+
+          if (matcher1 && matcher2) {
+            for (let i = 0; i < pages.length; i++) {
+              const curExact1 = pHitsList[i].h1.length > 0;
+              const curExact2 = pHitsList[i].h2.length > 0;
+              const curAny1 = curExact1 || pHitsList[i].fuzzy1.length > 0;
+              const curAny2 = curExact2 || pHitsList[i].fuzzy2.length > 0;
+
+              if (curExact1 && curExact2) {
+                validExactPages.set(i, { isAdjacent: false });
+              } else if (curAny1 && curAny2) {
+                validFuzzyPages.set(i, { isAdjacent: false });
+              }
+
+              if (i < pages.length - 1) {
+                const nextExact1 = pHitsList[i + 1].h1.length > 0;
+                const nextExact2 = pHitsList[i + 1].h2.length > 0;
+                if ((curExact1 && nextExact2) || (curExact2 && nextExact1)) {
+                  if (!validExactPages.has(i)) validExactPages.set(i, { isAdjacent: true });
+                  if (!validExactPages.has(i + 1)) validExactPages.set(i + 1, { isAdjacent: true });
+                }
+              }
+            }
+          } else {
+            for (let i = 0; i < pages.length; i++) {
+              const exactHit = matcher1 ? (pHitsList[i].h1.length > 0) : (pHitsList[i].h2.length > 0);
+              const fuzzyHit = matcher1 ? (pHitsList[i].fuzzy1.length > 0) : (pHitsList[i].fuzzy2.length > 0);
+              if (exactHit) {
+                validExactPages.set(i, { isAdjacent: false });
+              } else if (fuzzyHit) {
+                validFuzzyPages.set(i, { isAdjacent: false });
+              }
+            }
+          }
+
+          if (validExactPages.size > 0) {
+            const scoredPages = Array.from(validExactPages.entries()).map(([idx, meta]) => {
+              const pObj = pages[idx];
+              const { h1, h2 } = pHitsList[idx];
+              const score = computePageScoreBM25(pObj, h1, h2, idf1, idf2, meta.isAdjacent);
+              return { pageObj: pObj, score };
+            });
+            scoredPages.sort((a, b) => b.score - a.score);
+
+            let titleBonus = 0;
+            if (matcher1 && new RegExp(matcher1.regex.source, 'iu').test(matcher1.isAccented ? d.nfcTitle : d.asciiTitle)) titleBonus += 5.0;
+            if (matcher2 && new RegExp(matcher2.regex.source, 'iu').test(matcher2.isAccented ? d.nfcTitle : d.asciiTitle)) titleBonus += 5.0;
+
+            const docScore = scoredPages[0].score + titleBonus;
+            const matchedPages = scoredPages.map(sp => sp.pageObj);
+
+            currentSearchMatchedDocsMap.set(d.id, {
+              firstPageNum: matchedPages[0].pageNum,
+              pageCount: matchedPages.length,
+              isFuzzy: false
+            });
+
+            exactMatchedItems.push({
+              doc: d,
+              bm25Score: docScore,
+              isFuzzyCard: false,
+              matchedPages
+            });
+          } else if (validFuzzyPages.size > 0) {
+            const fuzzyScoredPages = Array.from(validFuzzyPages.entries()).map(([idx]) => {
+              const pObj = pages[idx];
+              const f1 = pHitsList[idx].h1.length > 0 ? pHitsList[idx].h1 : pHitsList[idx].fuzzy1;
+              const f2 = pHitsList[idx].h2.length > 0 ? pHitsList[idx].h2 : pHitsList[idx].fuzzy2;
+              const score = computePageScoreBM25(pObj, f1, f2, idf1, idf2, false);
+              return { pageObj: pObj, score };
+            });
+            fuzzyScoredPages.sort((a, b) => b.score - a.score);
+            const matchedPages = fuzzyScoredPages.map(sp => sp.pageObj);
+
+            currentSearchMatchedDocsMap.set(d.id, {
+              firstPageNum: matchedPages[0].pageNum,
+              pageCount: matchedPages.length,
+              isFuzzy: true
+            });
+
+            fuzzyOcrMatchedItems.push({
+              doc: d,
+              bm25Score: fuzzyScoredPages[0].score,
+              isFuzzyCard: true,
+              matchedPages
+            });
+          }
+        });
+
+        exactMatchedItems.sort((a, b) => b.bm25Score - a.bm25Score);
+        fuzzyOcrMatchedItems.sort((a, b) => b.bm25Score - a.bm25Score);
+
+        resultCount.innerHTML = `Tìm thấy <strong class="text-sky-800">${exactMatchedItems.length}</strong> tài liệu khớp chính xác` +
+          (fuzzyOcrMatchedItems.length > 0 ? ` • <strong class="text-purple-700">${fuzzyOcrMatchedItems.length}</strong> tài liệu OCR mờ` : ``);
+
+        renderFolderTree();
+        renderResults(exactMatchedItems, fuzzyOcrMatchedItems);
+      } catch (err) {
+        console.error("Search Error:", err);
+      }
+    }
+
+    const debouncedSearch = debounce(performSearch, 140);
+    searchInput1.addEventListener('input', debouncedSearch);
+    searchInput2.addEventListener('input', debouncedSearch);
+
+    function renderCompactDocRowHtml(itemObj, rankIdx) {
+      const { doc: d, isFuzzyCard, matchedPages } = itemObj;
+      const bestPageNum = matchedPages.length > 0 ? matchedPages[0].pageNum : 1;
+      const pageCount = matchedPages.length;
+      const folderName = d.category || 'Tài liệu chung';
+      const hasOriginalFile = Boolean(d.fileData || d.hasChunkedFile);
+
+      const rowStyle = isFuzzyCard
+        ? 'bg-purple-50/40 hover:bg-purple-100/60 border-purple-200 hover:border-purple-400'
+        : 'bg-amber-50/35 hover:bg-sky-50/80 border-amber-200/90 hover:border-sky-400';
+
+      return `
+        <div onclick="window.openOriginalAtPage('${d.id}', ${bestPageNum})"
+             class="group cursor-pointer rounded-xl border ${rowStyle} px-3.5 sm:px-4 py-3 sm:py-3.5 shadow-sm transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3"
+             title="Nhấn để mở tài liệu và xem ngay các trang chứa kết quả">
+          
+          <div class="flex items-start sm:items-center gap-2 min-w-0 flex-1">
+            <span class="text-[11px] sm:text-xs font-extrabold ${isFuzzyCard ? 'bg-purple-200 text-purple-900' : 'bg-amber-200/80 text-amber-950'} px-1.5 sm:px-2 py-0.5 rounded shrink-0 mt-0.5 sm:mt-0">
+              #${rankIdx + 1}
+            </span>
+            <div class="mt-0.5 sm:mt-0 shrink-0">${getFileBadgeMini(d.fileType)}</div>
+
+            <div class="text-xs sm:text-[15px] flex flex-wrap sm:flex-nowrap items-center gap-1 sm:gap-1.5 min-w-0">
+              <span class="font-semibold text-sky-800 bg-sky-100/70 px-2 py-0.5 rounded text-[11px] sm:text-xs shrink-0">${escapeHtml(folderName)}</span>
+              <span class="text-slate-400 font-bold">/</span>
+              <span class="font-bold text-slate-900 group-hover:text-sky-700 sm:truncate break-words transition">${escapeHtml(d.title)}</span>
+              <span class="text-slate-400 font-bold">/</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 shrink-0 self-end sm:self-auto">
+            <span class="text-[11px] sm:text-xs font-bold ${isFuzzyCard ? 'text-purple-800 bg-purple-100 border-purple-200' : 'text-amber-900 bg-amber-100/90 border-amber-300'} border px-2.5 py-0.5 sm:py-1 rounded-full">
+              🎯 ${pageCount} trang khớp (Mở Trang ${bestPageNum})
+            </span>
+
+            ${hasOriginalFile ? `
+              <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                <button type="button" id="btn-download-${d.id}" onclick="window.downloadOrOpenFile('${d.id}', 'download')" class="h-7 px-2 rounded bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-semibold transition cursor-pointer" title="Tải file gốc">
+                  📥
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderResults(exactItems, fuzzyItems) {
+      if (exactItems.length === 0 && fuzzyItems.length === 0) {
+        resultsList.innerHTML = `
+          <div class="bg-white p-6 sm:p-8 rounded-xl text-center border border-slate-200">
+            <p class="text-xs sm:text-sm font-semibold text-slate-600">Không tìm thấy tài liệu nào chứa nội dung phù hợp.</p>
+          </div>`;
+        return;
+      }
+
+      let html = "";
+      if (exactItems.length > 0) {
+        html += `
+          <div class="space-y-2">
+            <div class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+              Danh sách tài liệu chứa kết quả (Nhấn vào tài liệu để xem):
+            </div>
+            ${exactItems.map((item, idx) => renderCompactDocRowHtml(item, idx)).join('')}
+          </div>
+        `;
+      }
+
+      if (fuzzyItems.length > 0) {
+        html += `
+          <div class="pt-3 space-y-2">
+            <div class="text-[11px] sm:text-xs font-bold text-purple-800 uppercase tracking-wider px-1">
+              Gợi ý khớp gần đúng trên bản Scan / OCR mờ:
+            </div>
+            ${fuzzyItems.map((item, idx) => renderCompactDocRowHtml(item, idx)).join('')}
+          </div>
+        `;
+      }
+
+      resultsList.innerHTML = html;
+    }
+
+    // =========================================================================
+    // 5. TRÌNH XEM TÀI LIỆU GỐC + CHỤM 2 NGÓN TAY (PINCH-TO-ZOOM) RIÊNG VÙNG VĂN BẢN
+    // =========================================================================
+
+    function revokeActiveViewerBlobUrls() {
+      while (activeViewerBlobUrls.length > 0) {
+        const u = activeViewerBlobUrls.pop();
+        try { URL.revokeObjectURL(u); } catch (e) {}
+      }
+    }
+
+    async function fetchOriginalBinary(item, onProgress) {
+      const cacheKey = item.docGroupId || item.id;
+      if (binaryCache.has(cacheKey)) return binaryCache.get(cacheKey);
+
+      let fullBase64 = "";
+      if (item.fileData) {
+        fullBase64 = item.fileData;
+      } else if (item.hasChunkedFile && item.docGroupId) {
+        if (onProgress) onProgress(`Đang tải dữ liệu gốc của "${item.title}"...`);
+        const snap = await getDocs(query(fileChunksColRef, where("docGroupId", "==", item.docGroupId)));
+        if (snap.empty) return null;
+        const chunks = snap.docs.map(d => d.data());
+        chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
+        fullBase64 = chunks.map(c => c.data).join("");
+      } else {
+        return null;
+      }
+
+      const decoded = base64DataUrlToUint8Array(fullBase64);
+      binaryCache.set(cacheKey, decoded);
+      return decoded;
+    }
+
+    window.downloadOrOpenFile = async (docId, mode = 'download') => {
+      const item = allDocuments.find(x => x.id === docId);
+      if (!item) return;
+
+      const btnEl = document.getElementById(`btn-download-${docId}`);
+      const origText = btnEl ? btnEl.innerHTML : "";
+      if (btnEl) {
+        btnEl.innerHTML = "⏳";
+        btnEl.disabled = true;
+      }
+
+      try {
+        const decoded = await fetchOriginalBinary(item);
+        if (!decoded) {
+          alert("Tài liệu này không có tệp gốc đính kèm.");
+          return;
+        }
+        const blob = new Blob([decoded.bytes], { type: decoded.mime });
+        const blobUrl = URL.createObjectURL(blob);
+
+        if (mode === 'open') {
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        } else {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = item.fileName || `${item.title}.${(item.fileType || 'pdf').toLowerCase()}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        }
+      } catch (err) {
+        alert("Lỗi khi tải tệp gốc: " + err.message);
+      } finally {
+        if (btnEl) {
+          btnEl.innerHTML = origText;
+          btnEl.disabled = false;
+        }
+      }
+    };
+
+    function applyNonPdfZoomAndRotation() {
+      const otherWrapper = document.getElementById('otherOriginalWrapper');
+      const rawWrapper = document.getElementById('rawTextWrapper');
+      otherWrapper.style.zoom = activeDocZoom;
+      rawWrapper.style.zoom = activeDocZoom;
+      otherWrapper.style.transform = `rotate(${activeViewerRotation}deg)`;
+      document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
+    }
+
+    function applyLivePdfSlotsScale(newScale) {
+      const w = Math.round(pdfUnitWidth * newScale);
+      const h = Math.round(pdfUnitHeight * newScale);
+      document.getElementById('pdfZoomLabel').textContent = `${Math.round(newScale * 100)}%`;
+
+      for (let i = 0; i < cachedPdfSlotElements.length; i++) {
+        const slot = cachedPdfSlotElements[i];
+        slot.style.width = `${w}px`;
+        slot.style.height = `${h}px`;
+        const canvas = slot.querySelector('.pdf-page-canvas');
+        const overlay = slot.querySelector('.pdf-page-overlay');
+        if (canvas) {
+          canvas.style.width = `${w}px`;
+          canvas.style.height = `${h}px`;
+        }
+        if (overlay) {
+          const renderedScale = parseFloat(slot.dataset.renderedScale || String(activePdfScale));
+          if (renderedScale > 0) {
+            const ratio = newScale / renderedScale;
+            overlay.style.transformOrigin = '0 0';
+            overlay.style.transform = `scale(${ratio})`;
+          }
+        }
+      }
+    }
+
+    let sharpReRenderTimer = null;
+    function scheduleSharpPdfReRenderAtCurrentScale() {
+      clearTimeout(sharpReRenderTimer);
+      sharpReRenderTimer = setTimeout(() => {
+        if (!activePdfInstance || isRawTextMode) return;
+        for (let i = 0; i < cachedPdfSlotElements.length; i++) {
+          const slot = cachedPdfSlotElements[i];
+          const renderedScale = parseFloat(slot.dataset.renderedScale || "0");
+          if (Math.abs(renderedScale - activePdfScale) > 0.03) {
+            slot.dataset.rendered = "false";
+          }
+        }
+        const pagesToRefresh = [activePdfPage, activePdfPage - 1, activePdfPage + 1];
+        pagesToRefresh.forEach(p => {
+          if (p >= 1 && p <= activePdfInstance.numPages) {
+            renderSinglePdfPageSlot(p, false);
+          }
+        });
+      }, 160);
+    }
+
+    window.zoomPdf = async (delta) => {
+      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+      if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
+        const oldScale = activePdfScale;
+        const newScale = Math.max(0.35, Math.min(3.2, Number((oldScale + delta).toFixed(2))));
+        if (newScale === oldScale) return;
+
+        const centerX = viewerScrollEl.scrollLeft + viewerScrollEl.clientWidth * 0.5;
+        const centerY = viewerScrollEl.scrollTop + viewerScrollEl.clientHeight * 0.5;
+        const ratio = newScale / oldScale;
+
+        activePdfScale = newScale;
+        applyLivePdfSlotsScale(newScale);
+
+        viewerScrollEl.scrollLeft = Math.max(0, centerX * ratio - viewerScrollEl.clientWidth * 0.5);
+        viewerScrollEl.scrollTop = Math.max(0, centerY * ratio - viewerScrollEl.clientHeight * 0.5);
+        scheduleSharpPdfReRenderAtCurrentScale();
+      } else {
+        activeDocZoom = Math.max(0.5, Math.min(2.8, Number((activeDocZoom + delta).toFixed(2))));
+        applyNonPdfZoomAndRotation();
+      }
+    };
+
+    window.resetViewerZoom = async () => {
+      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+      if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
+        activePdfScale = await computeOptimalInitialPdfScale(activePdfInstance, activeViewerRotation);
+        applyLivePdfSlotsScale(activePdfScale);
+        scheduleSharpPdfReRenderAtCurrentScale();
+      } else {
+        activeDocZoom = 1.0;
+        applyNonPdfZoomAndRotation();
+      }
+    };
+
+    // Xử lý cảm ứng Chụm 2 ngón tay (Pinch-to-Zoom) trực tiếp bên trong #viewerScrollContainer
+    let isPinchingDoc = false;
+    let pinchStartDist = 0;
+    let pinchStartScale = 1;
+    let pinchLiveScale = 1;
+    let pinchDocX = 0;
+    let pinchDocY = 0;
+
+    function getTwoFingerDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    viewerScrollEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        isPinchingDoc = true;
+        isProgrammaticScrolling = true;
+        pinchStartDist = Math.max(20, getTwoFingerDistance(e.touches));
+
+        const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+        pinchStartScale = (fType === 'PDF' && activePdfInstance && !isRawTextMode) ? activePdfScale : activeDocZoom;
+        pinchLiveScale = pinchStartScale;
+
+        const rect = viewerScrollEl.getBoundingClientRect();
+        const midX = ((e.touches[0].clientX + e.touches[1].clientX) * 0.5) - rect.left;
+        const midY = ((e.touches[0].clientY + e.touches[1].clientY) * 0.5) - rect.top;
+
+        pinchDocX = viewerScrollEl.scrollLeft + midX;
+        pinchDocY = viewerScrollEl.scrollTop + midY;
+      }
+    }, { passive: false });
+
+    viewerScrollEl.addEventListener('touchmove', (e) => {
+      if (!isPinchingDoc || e.touches.length !== 2) return;
+      e.preventDefault();
+
+      const curDist = getTwoFingerDistance(e.touches);
+      const scaleMultiplier = curDist / pinchStartDist;
+      const newScale = Math.max(0.35, Math.min(3.2, Number((pinchStartScale * scaleMultiplier).toFixed(2))));
+      pinchLiveScale = newScale;
+
+      const rect = viewerScrollEl.getBoundingClientRect();
+      const curMidX = ((e.touches[0].clientX + e.touches[1].clientX) * 0.5) - rect.left;
+      const curMidY = ((e.touches[0].clientY + e.touches[1].clientY) * 0.5) - rect.top;
+
+      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+      if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
+        applyLivePdfSlotsScale(newScale);
+      } else {
+        activeDocZoom = newScale;
+        applyNonPdfZoomAndRotation();
+      }
+
+      const ratio = newScale / pinchStartScale;
+      viewerScrollEl.scrollLeft = Math.max(0, pinchDocX * ratio - curMidX);
+      viewerScrollEl.scrollTop = Math.max(0, pinchDocY * ratio - curMidY);
+    }, { passive: false });
+
+    const finishPinchGesture = (e) => {
+      if (!isPinchingDoc) return;
+      if (e.touches && e.touches.length >= 2) return;
+      isPinchingDoc = false;
+
+      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+      if (fType === 'PDF' && activePdfInstance && !isRawTextMode) {
+        activePdfScale = pinchLiveScale;
+        scheduleSharpPdfReRenderAtCurrentScale();
+      }
+
+      setTimeout(() => {
+        isProgrammaticScrolling = false;
+      }, 150);
+    };
+
+    viewerScrollEl.addEventListener('touchend', finishPinchGesture);
+    viewerScrollEl.addEventListener('touchcancel', finishPinchGesture);
+
+    window.toggleSideBySideEditor = () => {
+      if (!isAdmin()) return;
+      const pane = document.getElementById('sideBySideEditorPane');
+      const btn = document.getElementById('sideBySideBtn');
+      isSideBySideOpen = !isSideBySideOpen;
+
+      if (isSideBySideOpen) {
+        pane.classList.remove('hidden');
+        pane.classList.add('flex');
+        btn.className = "h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-amber-400 text-slate-950 font-extrabold text-[11px] sm:text-xs transition whitespace-nowrap cursor-pointer shadow";
+        syncSideBySideTextareaWithCurrentPage();
+      } else {
+        pane.classList.add('hidden');
+        pane.classList.remove('flex');
+        btn.className = "h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer";
+      }
+    };
+
+    function syncSideBySideTextareaWithCurrentPage() {
+      if (!activeViewerDoc) return;
+      const pages = activeViewerDoc.indexedPages || [];
+      const pObj = pages.find(p => p.pageNum === activePdfPage) || pages[0];
+      const labelEl = document.getElementById('sideEditorPageLabel');
+      const textarea = document.getElementById('sideBySideTextarea');
+
+      if (pObj) {
+        labelEl.textContent = `Văn bản OCR — ${pObj.pageLabel}`;
+        textarea.value = pObj.rawText.trim();
+      } else {
+        labelEl.textContent = `Văn bản OCR — Trang ${activePdfPage}`;
+        textarea.value = activeViewerDoc.content || "";
+      }
+    }
+
+    window.saveCurrentPageOcrTextEdit = async () => {
+      if (!isAdmin() || !activeViewerDoc) return;
+      const saveBtnEl = document.getElementById('savePageOcrEditBtn');
+      const newPageText = cleanAndNormalizeVietnameseText(document.getElementById('sideBySideTextarea').value.trim());
+
+      saveBtnEl.disabled = true;
+      saveBtnEl.textContent = "⏳ Đang lưu...";
+
+      try {
+        const pages = activeViewerDoc.indexedPages || [];
+        let updatedFullContent = "";
+
+        if (pages.length <= 1) {
+          updatedFullContent = `[Trang 1] ${newPageText}`;
+        } else {
+          updatedFullContent = pages.map(p => {
+            const headerTag = p.sheetName ? `[Sheet: ${p.sheetName}]` : `[Trang ${p.pageNum}]`;
+            const bodyTxt = (p.pageNum === activePdfPage) ? newPageText : p.rawText.trim();
+            return `${headerTag} ${bodyTxt}`;
+          }).join("\n\n");
+        }
+
+        await overwriteDocumentTextInCloud(activeViewerDoc, updatedFullContent);
+        populateRawTextViewWithPageAnchors(activeViewerDoc, activeKw1, activeKw2);
+        renderViewerMatchedPageChips(activeViewerDoc, activePdfPage);
+        performSearch();
+
+        saveBtnEl.textContent = "✅ Đã lưu!";
+        setTimeout(() => { saveBtnEl.textContent = "💾 Lưu sửa"; }, 1400);
+      } catch (err) {
+        alert("Lỗi khi lưu văn bản sửa đổi: " + err.message);
+        saveBtnEl.textContent = "💾 Lưu sửa";
+      } finally {
+        saveBtnEl.disabled = false;
+      }
+    };
+
+    function cleanupContinuousPdfObserver() {
+      if (pdfIntersectionObserver) {
+        pdfIntersectionObserver.disconnect();
+        pdfIntersectionObserver = null;
+      }
+      for (const task of pdfActiveRenderTasks.values()) {
+        try { task.cancel(); } catch (e) {}
+      }
+      pdfActiveRenderTasks.clear();
+      pdfRenderedPagesSet.clear();
+      cachedPdfSlotElements = [];
+    }
+
+    function updateActivePageIndicators(newPageNum) {
+      if (!activePdfInstance) return;
+      const clamped = Math.max(1, Math.min(newPageNum, activePdfInstance.numPages));
+      const changed = (activePdfPage !== clamped);
+      activePdfPage = clamped;
+
+      document.querySelectorAll('.page-chip-btn').forEach(btn => {
+        if (parseInt(btn.dataset.page, 10) === activePdfPage) {
+          btn.className = "page-chip-btn bg-amber-400 text-slate-950 font-extrabold px-2 sm:px-2.5 py-0.5 rounded text-[11px] sm:text-xs shadow shrink-0 cursor-pointer";
+        } else {
+          btn.className = "page-chip-btn bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2 sm:px-2.5 py-0.5 rounded text-[11px] sm:text-xs shrink-0 cursor-pointer";
+        }
+      });
+
+      const slotEl = document.getElementById(`pdf-page-slot-${activePdfPage}`);
+      const countBadge = document.getElementById('pageHighlightCountBadge');
+      if (activeKw1 || activeKw2) {
+        countBadge.classList.remove('hidden');
+        const hlCount = slotEl && slotEl.dataset.hlCount !== undefined ? parseInt(slotEl.dataset.hlCount, 10) : null;
+        if (hlCount !== null && hlCount > 0) {
+          countBadge.textContent = `Trang ${activePdfPage}: ${hlCount} vị trí`;
+        } else if (hlCount === 0) {
+          countBadge.textContent = isAdmin()
+            ? `Trang ${activePdfPage}: Ảnh OCR`
+            : `Trang ${activePdfPage}: Bản Scan`;
+        } else {
+          countBadge.textContent = `Trang ${activePdfPage}`;
+        }
+      } else {
+        countBadge.classList.add('hidden');
+      }
+
+      if (changed && isSideBySideOpen) {
+        const textarea = document.getElementById('sideBySideTextarea');
+        if (document.activeElement !== textarea) {
+          syncSideBySideTextareaWithCurrentPage();
+        }
+      }
+    }
+
+    async function buildContinuousPdfPagesLayout(initialPageNum = 1, scrollToHighlight = true) {
+      if (!activePdfInstance) return;
+      cleanupContinuousPdfObserver();
+
+      const wrapper = document.getElementById('pdfCanvasWrapper');
+      wrapper.innerHTML = "";
+      document.getElementById('pdfZoomLabel').textContent = `${Math.round(activePdfScale * 100)}%`;
+
+      const numPages = activePdfInstance.numPages;
+      const firstPage = await activePdfInstance.getPage(1);
+      const baseRot = firstPage.rotate || 0;
+      const unitVp = firstPage.getViewport({
+        scale: 1.0,
+        rotation: (baseRot + activeViewerRotation) % 360
+      });
+      pdfUnitWidth = unitVp.width;
+      pdfUnitHeight = unitVp.height;
+
+      const defaultW = Math.round(pdfUnitWidth * activePdfScale);
+      const defaultH = Math.round(pdfUnitHeight * activePdfScale);
+
+      const frag = document.createDocumentFragment();
+      const slotList = [];
+      for (let p = 1; p <= numPages; p++) {
+        const slot = document.createElement('div');
+        slot.id = `pdf-page-slot-${p}`;
+        slot.dataset.pageNum = String(p);
+        slot.dataset.rendered = "false";
+        slot.dataset.renderedScale = String(activePdfScale);
+        slot.className = "pdf-page-slot relative shadow-2xl bg-white border border-slate-300 mx-auto shrink-0";
+        slot.style.width = `${defaultW}px`;
+        slot.style.height = `${defaultH}px`;
+
+        slot.innerHTML = `
+          <div class="pdf-page-placeholder absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-400 select-none">
+            Trang ${p} / ${numPages}
+          </div>
+          <canvas class="pdf-page-canvas block relative z-[1]"></canvas>
+          <div class="pdf-page-overlay absolute inset-0 pointer-events-none overflow-hidden z-[10]"></div>
+          <div class="bg-slate-900/75 text-amber-300 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded shadow pointer-events-none absolute bottom-2 right-2 z-[15]">
+            Trang ${p} / ${numPages}
+          </div>
+        `;
+        frag.appendChild(slot);
+        slotList.push(slot);
+      }
+      wrapper.appendChild(frag);
+      cachedPdfSlotElements = slotList;
+
+      const targetPage = Math.max(1, Math.min(initialPageNum || 1, numPages));
+      activePdfPage = targetPage;
+      updateActivePageIndicators(targetPage);
+
+      const targetSlot = document.getElementById(`pdf-page-slot-${targetPage}`);
+      if (targetSlot) {
+        isProgrammaticScrolling = true;
+        targetSlot.scrollIntoView({ behavior: 'auto', block: 'start' });
+        setTimeout(() => { isProgrammaticScrolling = false; }, 120);
+      }
+
+      await renderSinglePdfPageSlot(targetPage, scrollToHighlight);
+
+      pdfIntersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const pNum = parseInt(entry.target.dataset.pageNum, 10);
+          if (entry.isIntersecting && !isNaN(pNum)) {
+            renderSinglePdfPageSlot(pNum, false);
+          }
+        });
+      }, {
+        root: viewerScrollEl,
+        rootMargin: "900px 0px 900px 0px",
+        threshold: 0.01
+      });
+
+      cachedPdfSlotElements.forEach(slotEl => {
+        pdfIntersectionObserver.observe(slotEl);
+      });
+    }
+
+    async function renderSinglePdfPageSlot(pageNum, autoScrollToFirstHighlight = false) {
+      if (!activePdfInstance) return;
+      const slotEl = document.getElementById(`pdf-page-slot-${pageNum}`);
+      if (!slotEl) return;
+
+      if (slotEl.dataset.rendered === "true") {
+        if (autoScrollToFirstHighlight) {
+          const existingHl = slotEl.querySelector('.pdf-hl-box-kw1, .pdf-hl-box-kw2');
+          if (existingHl) {
+            setTimeout(() => existingHl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }), 60);
+          }
+        }
+        return;
+      }
+
+      if (slotEl.dataset.rendering === "true") {
+        if (autoScrollToFirstHighlight) {
+          slotEl.dataset.pendingScrollHl = "true";
+        }
+        return;
+      }
+
+      slotEl.dataset.rendering = "true";
+      const renderScaleSnapshot = activePdfScale;
+
+      try {
+        const page = await activePdfInstance.getPage(pageNum);
+        const baseRotation = page.rotate || 0;
+        const rotDeg = (baseRotation + activeViewerRotation) % 360;
+
+        const cssViewport = page.getViewport({
+          scale: renderScaleSnapshot,
+          rotation: rotDeg
+        });
+
+        const hiDpiRatio = getHiDpiCanvasSupersampleRatio(renderScaleSnapshot);
+        const renderViewport = page.getViewport({
+          scale: renderScaleSnapshot * hiDpiRatio,
+          rotation: rotDeg
+        });
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = Math.round(renderViewport.width);
+        offCanvas.height = Math.round(renderViewport.height);
+
+        const renderTask = page.render({
+          canvasContext: offCanvas.getContext('2d'),
+          viewport: renderViewport
+        });
+        pdfActiveRenderTasks.set(pageNum, renderTask);
+        await renderTask.promise;
+        pdfActiveRenderTasks.delete(pageNum);
+
+        const canvas = slotEl.querySelector('.pdf-page-canvas');
+        const overlayDiv = slotEl.querySelector('.pdf-page-overlay');
+        const placeholder = slotEl.querySelector('.pdf-page-placeholder');
+
+        const cssW = Math.round(cssViewport.width);
+        const cssH = Math.round(cssViewport.height);
+
+        slotEl.style.width = `${Math.round(pdfUnitWidth * activePdfScale)}px`;
+        slotEl.style.height = `${Math.round(pdfUnitHeight * activePdfScale)}px`;
+
+        canvas.width = offCanvas.width;
+        canvas.height = offCanvas.height;
+        canvas.style.width = `${Math.round(pdfUnitWidth * activePdfScale)}px`;
+        canvas.style.height = `${Math.round(pdfUnitHeight * activePdfScale)}px`;
+        canvas.getContext('2d').drawImage(offCanvas, 0, 0);
+        offCanvas.width = 0;
+        offCanvas.height = 0;
+
+        overlayDiv.style.width = `${cssW}px`;
+        overlayDiv.style.height = `${cssH}px`;
+        overlayDiv.style.transformOrigin = '0 0';
+        overlayDiv.style.transform = `scale(${activePdfScale / renderScaleSnapshot})`;
+        overlayDiv.innerHTML = "";
+
+        if (placeholder) placeholder.classList.add('hidden');
+        slotEl.dataset.rendered = "true";
+        slotEl.dataset.rendering = "false";
+        slotEl.dataset.renderedScale = String(renderScaleSnapshot);
+        pdfRenderedPagesSet.add(pageNum);
+
+        const textContent = await page.getTextContent();
+        const items = textContent.items || [];
+
+        let fullPageNFC = "";
+        let fullPageASCII = "";
+        const charToItemMap = [];
+
+        let lastXEnd = null;
+        let lastY = null;
+
+        for (let i = 0; i < items.length; i++) {
+          const rawDecoded = convertLegacyVietnameseEncoding(items[i].str || "");
+          if (!rawDecoded) continue;
+
+          const x = items[i].transform ? items[i].transform[4] : null;
+          const y = items[i].transform ? items[i].transform[5] : null;
+          const fontH = items[i].transform ? Math.max(8, Math.hypot(items[i].transform[2], items[i].transform[3])) : 10;
+
+          if (lastY !== null && y !== null && Math.abs(y - lastY) > fontH * 0.65) {
+            if (!fullPageNFC.endsWith(" ")) {
+              fullPageNFC += " ";
+              fullPageASCII += " ";
+              charToItemMap.push({ itemIdx: i, charIdx: 0, itemLen: 1, isVirtualSpace: true });
+            }
+          } else if (lastXEnd !== null && x !== null && (x - lastXEnd) > fontH * 0.22) {
+            if (!fullPageNFC.endsWith(" ")) {
+              fullPageNFC += " ";
+              fullPageASCII += " ";
+              charToItemMap.push({ itemIdx: i, charIdx: 0, itemLen: 1, isVirtualSpace: true });
+            }
+          }
+
+          const itemLen = Math.max(1, rawDecoded.length);
+          for (let c = 0; c < rawDecoded.length; c++) {
+            const chNFC = toVietnameseLowerNFC(rawDecoded[c]);
+            const chASCII = removeAccents(rawDecoded[c]);
+            fullPageNFC += chNFC;
+            fullPageASCII += chASCII;
+            charToItemMap.push({ itemIdx: i, charIdx: c, itemLen });
+          }
+
+          if (x !== null) {
+            const wItem = items[i].width || (rawDecoded.length * fontH * 0.5);
+            lastXEnd = x + wItem;
+          }
+          if (y !== null) lastY = y;
+        }
+
+        const kws = [
+          { matcher: buildPhraseMatcher(activeKw1), boxClass: "pdf-hl-box-kw1" },
+          { matcher: buildPhraseMatcher(activeKw2), boxClass: "pdf-hl-box-kw2" }
+        ].filter(k => Boolean(k.matcher));
+
+        let totalBoxesDrawn = 0;
+        let firstHighlightBoxEl = null;
+
+        kws.forEach(({ matcher, boxClass }) => {
+          const targetPageStr = matcher.isAccented ? fullPageNFC : fullPageASCII;
+          const rx = new RegExp(matcher.regex.source, 'giu');
+
+          let match;
+          let safetyCount = 0;
+          while ((match = rx.exec(targetPageStr)) !== null) {
+            safetyCount++;
+            if (safetyCount > 300) break;
+
+            const startIdx = match.index;
+            const endIdx = match.index + match[0].length - 1;
+            if (endIdx < startIdx) break;
+
+            const itemSegments = new Map();
+            for (let pos = startIdx; pos <= endIdx; pos++) {
+              const mapInfo = charToItemMap[pos];
+              if (!mapInfo || mapInfo.isVirtualSpace) continue;
+              if (!itemSegments.has(mapInfo.itemIdx)) {
+                itemSegments.set(mapInfo.itemIdx, { minChar: mapInfo.charIdx, maxChar: mapInfo.charIdx, itemLen: mapInfo.itemLen });
+              } else {
+                const seg = itemSegments.get(mapInfo.itemIdx);
+                seg.minChar = Math.min(seg.minChar, mapInfo.charIdx);
+                seg.maxChar = Math.max(seg.maxChar, mapInfo.charIdx);
+              }
+            }
+
+            itemSegments.forEach((seg, itemIdx) => {
+              const item = items[itemIdx];
+              if (!item || !item.transform) return;
+
+              const tx = pdfjsLib.Util.transform(cssViewport.transform, item.transform);
+              const fontHeight = Math.max(10, Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3])));
+              const fullItemWidth = (item.width ? item.width * renderScaleSnapshot : fontHeight * (item.str.length * 0.55));
+
+              const startRatio = Math.max(0, seg.minChar / seg.itemLen);
+              const endRatio = Math.min(1, (seg.maxChar + 1) / seg.itemLen);
+
+              const subX = tx[4] + fullItemWidth * startRatio;
+              const subWidth = Math.max(12, fullItemWidth * (endRatio - startRatio));
+              const subY = tx[5] - fontHeight;
+
+              const boxDiv = document.createElement('div');
+              boxDiv.className = boxClass;
+              boxDiv.style.left = `${subX - 2}px`;
+              boxDiv.style.top = `${subY - 2}px`;
+              boxDiv.style.width = `${subWidth + 4}px`;
+              boxDiv.style.height = `${fontHeight + 4}px`;
+
+              overlayDiv.appendChild(boxDiv);
+              if (!firstHighlightBoxEl) firstHighlightBoxEl = boxDiv;
+              totalBoxesDrawn++;
+            });
+
+            if (rx.lastIndex === match.index) rx.lastIndex++;
+          }
+        });
+
+        slotEl.dataset.hlCount = String(totalBoxesDrawn);
+        if (pageNum === activePdfPage) {
+          updateActivePageIndicators(activePdfPage);
+        }
+
+        const shouldScrollHl = autoScrollToFirstHighlight || slotEl.dataset.pendingScrollHl === "true";
+        slotEl.dataset.pendingScrollHl = "false";
+
+        if (shouldScrollHl && firstHighlightBoxEl) {
+          setTimeout(() => {
+            firstHighlightBoxEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          }, 80);
+        }
+
+        const maxCachedPages = window.innerWidth < 768 ? 8 : 14;
+        const maxDistance = window.innerWidth < 768 ? 5 : 9;
+        if (pdfRenderedPagesSet.size > maxCachedPages) {
+          for (const oldPage of Array.from(pdfRenderedPagesSet)) {
+            if (Math.abs(oldPage - activePdfPage) > maxDistance) {
+              const farSlot = document.getElementById(`pdf-page-slot-${oldPage}`);
+              if (farSlot) {
+                const farCanvas = farSlot.querySelector('.pdf-page-canvas');
+                const farOverlay = farSlot.querySelector('.pdf-page-overlay');
+                const farPlaceholder = farSlot.querySelector('.pdf-page-placeholder');
+                if (farCanvas) { farCanvas.width = 0; farCanvas.height = 0; }
+                if (farOverlay) farOverlay.innerHTML = "";
+                if (farPlaceholder) farPlaceholder.classList.remove('hidden');
+                farSlot.dataset.rendered = "false";
+              }
+              pdfRenderedPagesSet.delete(oldPage);
+            }
+          }
+        }
+      } catch (err) {
+        slotEl.dataset.rendering = "false";
+      }
+    }
+
+    viewerScrollEl.addEventListener('scroll', () => {
+      if (isProgrammaticScrolling || isPinchingDoc || isRawTextMode || !activePdfInstance || scrollTicking) return;
+      const fType = (activeViewerDoc?.fileType || "").toUpperCase();
+      if (fType !== 'PDF' || cachedPdfSlotElements.length === 0) return;
+
+      scrollTicking = true;
+      window.requestAnimationFrame(() => {
+        scrollTicking = false;
+        if (isProgrammaticScrolling || isPinchingDoc || !activePdfInstance || cachedPdfSlotElements.length === 0) return;
+
+        const targetScrollLine = viewerScrollEl.scrollTop + viewerScrollEl.clientHeight * 0.38;
+        let bestPage = activePdfPage;
+        let minDist = Infinity;
+
+        for (let i = 0; i < cachedPdfSlotElements.length; i++) {
+          const slot = cachedPdfSlotElements[i];
+          const top = slot.offsetTop;
+          const bottom = top + slot.offsetHeight;
+          if (top <= targetScrollLine && bottom >= targetScrollLine) {
+            bestPage = i + 1;
+            break;
+          }
+          const mid = (top + bottom) * 0.5;
+          const dist = Math.abs(mid - targetScrollLine);
+          if (dist < minDist) {
+            minDist = dist;
+            bestPage = i + 1;
+          }
+        }
+
+        if (bestPage !== activePdfPage) {
+          updateActivePageIndicators(bestPage);
+        }
+      });
+    }, { passive: true });
+
+    window.openOriginalAtPage = async (docId, targetPageNum = 1) => {
+      const item = allDocuments.find(x => x.id === docId);
+      if (!item) return;
+
+      selectedDocIdInTree = docId;
+      renderFolderTree();
+
+      cleanupContinuousPdfObserver();
+      revokeActiveViewerBlobUrls();
+
+      activeViewerDoc = item;
+      activePdfPage = targetPageNum || 1;
+      activeViewerRotation = 0;
+      activeDocZoom = 1.0;
+      activeKw1 = searchInput1.value.trim();
+      activeKw2 = searchInput2.value.trim();
+      isRawTextMode = false;
+
+      const modal = document.getElementById('originalViewerModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const pdfControls = document.getElementById('pdfControls');
+      const matchedPagesBar = document.getElementById('matchedPagesBar');
+      const viewerLoading = document.getElementById('viewerLoading');
+      const viewerLoadingText = document.getElementById('viewerLoadingText');
+      const pdfCanvasWrapper = document.getElementById('pdfCanvasWrapper');
+      const otherOriginalWrapper = document.getElementById('otherOriginalWrapper');
+      const rawTextWrapper = document.getElementById('rawTextWrapper');
+      const sideBySideBtn = document.getElementById('sideBySideBtn');
+      const switchModeBtn = document.getElementById('switchModeBtn');
+
+      otherOriginalWrapper.style.transform = 'rotate(0deg)';
+      otherOriginalWrapper.style.zoom = 1;
+      rawTextWrapper.style.zoom = 1;
+
+      document.getElementById('viewerTitle').textContent = item.title;
+      document.getElementById('viewerTitle').title = item.title;
+      document.getElementById('viewerBadge').textContent = `${item.fileType || 'TEXT'} GỐC`;
+      switchModeBtn.textContent = "Văn bản";
+      document.getElementById('viewerDownloadBtn').onclick = () => window.downloadOrOpenFile(item.id, 'download');
+
+      if (isAdmin()) {
+        sideBySideBtn.classList.remove('hidden');
+        switchModeBtn.classList.remove('hidden');
+        if (isSideBySideOpen) {
+          syncSideBySideTextareaWithCurrentPage();
+        }
+      } else {
+        sideBySideBtn.classList.add('hidden');
+        switchModeBtn.classList.add('hidden');
+        isSideBySideOpen = false;
+        document.getElementById('sideBySideEditorPane').classList.add('hidden');
+        document.getElementById('sideBySideEditorPane').classList.remove('flex');
+      }
+
+      pdfControls.classList.remove('hidden');
+      pdfControls.classList.add('flex');
+      matchedPagesBar.classList.add('hidden');
+      pdfCanvasWrapper.classList.add('hidden');
+      pdfCanvasWrapper.classList.remove('flex');
+      otherOriginalWrapper.classList.add('hidden');
+      rawTextWrapper.classList.add('hidden');
+      viewerLoading.classList.remove('hidden');
+
+      populateRawTextViewWithPageAnchors(item, activeKw1, activeKw2);
+      renderViewerMatchedPageChips(item, targetPageNum);
+
+      try {
+        const fType = (item.fileType || "").toUpperCase();
+        const cacheKey = item.docGroupId || item.id;
+
+        if (fType !== 'PDF') {
+          document.getElementById('pdfZoomLabel').textContent = "100%";
+        }
+
+        if (['XLSX', 'XLS', 'CSV'].includes(fType)) {
+          otherOriginalWrapper.className = "hidden bg-white text-slate-800 rounded-lg sm:rounded-xl shadow-2xl w-fit min-w-full p-3 sm:p-6 h-fit mx-auto orig-doc-view transition-transform duration-150";
+        } else {
+          otherOriginalWrapper.className = "hidden bg-white text-slate-800 rounded-lg sm:rounded-xl shadow-2xl max-w-5xl w-full p-4 sm:p-8 h-fit mx-auto orig-doc-view transition-transform duration-150";
+        }
+
+        if (fType === 'PDF' && pdfDocumentCache.has(cacheKey)) {
+          activePdfInstance = pdfDocumentCache.get(cacheKey);
+          activePdfScale = await computeOptimalInitialPdfScale(activePdfInstance, 0);
+          viewerLoading.classList.add('hidden');
+          pdfCanvasWrapper.classList.remove('hidden');
+          pdfCanvasWrapper.classList.add('flex');
+          await buildContinuousPdfPagesLayout(targetPageNum || 1, true);
+          return;
+        }
+
+        const decoded = await fetchOriginalBinary(item, (msg) => {
+          viewerLoadingText.textContent = msg;
+        });
+
+        if (!decoded) {
+          viewerLoading.classList.add('hidden');
+          rawTextWrapper.classList.remove('hidden');
+          isRawTextMode = true;
+          switchModeBtn.textContent = `Trang ${targetPageNum}`;
+          scrollToRawPageAnchor(targetPageNum);
+          return;
+        }
+
+        if (fType === 'PDF') {
+          viewerLoadingText.textContent = `Đang hiển thị Trang ${targetPageNum}...`;
+          const pdfBytesCopy = decoded.bytes.slice(0);
+          activePdfInstance = await pdfjsLib.getDocument({ data: pdfBytesCopy }).promise;
+          pdfDocumentCache.set(cacheKey, activePdfInstance);
+
+          activePdfScale = await computeOptimalInitialPdfScale(activePdfInstance, 0);
+          viewerLoading.classList.add('hidden');
+          pdfCanvasWrapper.classList.remove('hidden');
+          pdfCanvasWrapper.classList.add('flex');
+
+          await buildContinuousPdfPagesLayout(targetPageNum || 1, true);
+        }
+        else if (fType === 'DOCX') {
+          viewerLoadingText.textContent = "Đang dựng tài liệu Word...";
+          const result = await mammoth.convertToHtml({ arrayBuffer: decoded.bytes.buffer.slice(0) });
+          otherOriginalWrapper.innerHTML = result.value;
+          highlightDomElementNodes(otherOriginalWrapper, activeKw1, activeKw2);
+          viewerLoading.classList.add('hidden');
+          otherOriginalWrapper.classList.remove('hidden');
+          setTimeout(() => {
+            const firstMark = otherOriginalWrapper.querySelector('mark');
+            if (firstMark) firstMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          }, 120);
+        }
+        else if (['XLSX', 'XLS', 'CSV'].includes(fType)) {
+          viewerLoadingText.textContent = "Đang dựng bảng tính Excel...";
+          const workbook = XLSX.read(decoded.bytes, { type: 'array' });
+          let html = "";
+          workbook.SheetNames.forEach(sName => {
+            const tableHtml = XLSX.utils.sheet_to_html(workbook.Sheets[sName]);
+            html += `<div class="mb-8"><h4 class="font-bold text-xs sm:text-sm bg-slate-800 text-white px-3.5 py-2 rounded-t">Sheet: ${escapeHtml(sName)}</h4>${tableHtml}</div>`;
+          });
+          otherOriginalWrapper.innerHTML = html;
+          highlightDomElementNodes(otherOriginalWrapper, activeKw1, activeKw2);
+          viewerLoading.classList.add('hidden');
+          otherOriginalWrapper.classList.remove('hidden');
+          setTimeout(() => {
+            const firstMark = otherOriginalWrapper.querySelector('mark');
+            if (firstMark) firstMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          }, 120);
+        }
+        else if (['PNG', 'JPG', 'JPEG', 'WEBP'].includes(fType)) {
+          const blob = new Blob([decoded.bytes], { type: decoded.mime });
+          const imgUrl = URL.createObjectURL(blob);
+          activeViewerBlobUrls.push(imgUrl);
+          otherOriginalWrapper.innerHTML = `<div class="text-center"><img src="${imgUrl}" class="max-w-full h-auto mx-auto rounded shadow" /></div>`;
+          viewerLoading.classList.add('hidden');
+          otherOriginalWrapper.classList.remove('hidden');
+        }
+        else {
+          viewerLoading.classList.add('hidden');
+          rawTextWrapper.classList.remove('hidden');
+          isRawTextMode = true;
+          scrollToRawPageAnchor(targetPageNum);
+        }
+      } catch (err) {
+        console.error(err);
+        viewerLoading.classList.add('hidden');
+        rawTextWrapper.classList.remove('hidden');
+        isRawTextMode = true;
+        scrollToRawPageAnchor(targetPageNum);
+      }
+    };
+
+    function renderViewerMatchedPageChips(item, activePage) {
+      const bar = document.getElementById('matchedPagesBar');
+      const list = document.getElementById('matchedPagesList');
+      activeMatchedPageSet.clear();
+
+      const m1 = buildPhraseMatcher(activeKw1);
+      const m2 = buildPhraseMatcher(activeKw2);
+
+      if (!m1 && !m2) {
+        bar.classList.add('hidden');
+        return;
+      }
+
+      const pages = item.indexedPages || [];
+      const hitsPerPage = pages.map(p => ({
+        h1: m1 ? (findPhraseOccurrencesInPage(p, m1).length > 0 || findFuzzyOcrFallbackOccurrencesInPage(p, m1).length > 0) : false,
+        h2: m2 ? (findPhraseOccurrencesInPage(p, m2).length > 0 || findFuzzyOcrFallbackOccurrencesInPage(p, m2).length > 0) : false
+      }));
+
+      if (m1 && m2) {
+        for (let i = 0; i < pages.length; i++) {
+          const curH1 = hitsPerPage[i].h1;
+          const curH2 = hitsPerPage[i].h2;
+          if (curH1 && curH2) activeMatchedPageSet.add(pages[i].pageNum);
+          if (i < pages.length - 1) {
+            const nextH1 = hitsPerPage[i + 1].h1;
+            const nextH2 = hitsPerPage[i + 1].h2;
+            if ((curH1 && nextH2) || (curH2 && nextH1)) {
+              activeMatchedPageSet.add(pages[i].pageNum);
+              activeMatchedPageSet.add(pages[i + 1].pageNum);
+            }
+          }
+        }
+      } else {
+        for (let i = 0; i < pages.length; i++) {
+          const hasHit = m1 ? hitsPerPage[i].h1 : hitsPerPage[i].h2;
+          if (hasHit) activeMatchedPageSet.add(pages[i].pageNum);
+        }
+      }
+
+      if (activeMatchedPageSet.size === 0) {
+        bar.classList.add('hidden');
+        return;
+      }
+
+      bar.classList.remove('hidden');
+      list.innerHTML = Array.from(activeMatchedPageSet).sort((a, b) => a - b).map(pNum => `
+        <button type="button" data-page="${pNum}" onclick="window.goToPdfPage(${pNum})"
+                class="page-chip-btn ${pNum === activePage ? 'bg-amber-400 text-slate-950 font-extrabold' : 'bg-slate-800 text-slate-200 border border-slate-700'} px-2 sm:px-2.5 py-0.5 rounded text-[11px] sm:text-xs transition shrink-0 cursor-pointer">
+          Trang ${pNum}
+        </button>
+      `).join('');
+    }
+
+    function populateRawTextViewWithPageAnchors(item, kw1, kw2) {
+      const pages = item.indexedPages || [];
+      let fullHtml = "";
+      pages.forEach(p => {
+        const highlightedBody = highlightBothKeywordsInPlainText(p.rawText, kw1, kw2, true);
+        fullHtml += `<div id="raw-page-${p.pageNum}" class="mb-8 pb-6 border-b border-slate-200 last:border-b-0">` +
+                    `<div class="bg-slate-800 text-amber-300 font-bold px-3 py-1 rounded-md mb-3 inline-block text-xs shadow-sm">${escapeHtml(p.pageLabel)}</div>` +
+                    `<div class="text-slate-800 leading-relaxed">${highlightedBody}</div></div>`;
+      });
+      document.getElementById('rawTextWrapper').innerHTML = fullHtml;
+    }
+
+    function scrollToRawPageAnchor(pageNum) {
+      setTimeout(() => {
+        const wrapper = document.getElementById('rawTextWrapper');
+        const pageDiv = document.getElementById(`raw-page-${pageNum}`);
+        if (pageDiv) {
+          const firstMarkInPage = pageDiv.querySelector('mark');
+          if (firstMarkInPage) {
+            firstMarkInPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            pageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else if (wrapper) {
+          const anyMark = wrapper.querySelector('mark');
+          if (anyMark) anyMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+
+    window.goToPdfPage = async (val) => {
+      const p = parseInt(val, 10);
+      if (isNaN(p)) return;
+      if (!isRawTextMode && activePdfInstance) {
+        const clamped = Math.max(1, Math.min(p, activePdfInstance.numPages));
+        updateActivePageIndicators(clamped);
+        if (isSideBySideOpen) syncSideBySideTextareaWithCurrentPage();
+
+        const slotEl = document.getElementById(`pdf-page-slot-${clamped}`);
+        if (slotEl) {
+          isProgrammaticScrolling = true;
+          slotEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(() => { isProgrammaticScrolling = false; }, 450);
+          await renderSinglePdfPageSlot(clamped, true);
+        }
+      } else {
+        activePdfPage = p;
+        if (isSideBySideOpen) syncSideBySideTextareaWithCurrentPage();
+        scrollToRawPageAnchor(p);
+      }
+    };
+
+    window.closeViewerModal = () => {
+      cleanupContinuousPdfObserver();
+      revokeActiveViewerBlobUrls();
+      const m = document.getElementById('originalViewerModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    };
+
+    window.toggleViewerMode = () => {
+      if (!isAdmin()) return;
+      const pdfCanvasWrapper = document.getElementById('pdfCanvasWrapper');
+      const otherOriginalWrapper = document.getElementById('otherOriginalWrapper');
+      const rawTextWrapper = document.getElementById('rawTextWrapper');
+      const switchBtn = document.getElementById('switchModeBtn');
+      const fType = (activeViewerDoc?.fileType || '').toUpperCase();
+
+      isRawTextMode = !isRawTextMode;
+      if (isRawTextMode) {
+        pdfCanvasWrapper.classList.add('hidden');
+        pdfCanvasWrapper.classList.remove('flex');
+        otherOriginalWrapper.classList.add('hidden');
+        rawTextWrapper.classList.remove('hidden');
+        switchBtn.textContent = "Trang Gốc";
+        document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
+        scrollToRawPageAnchor(activePdfPage);
+      } else {
+        rawTextWrapper.classList.add('hidden');
+        if (fType === 'PDF' && activePdfInstance) {
+          pdfCanvasWrapper.classList.remove('hidden');
+          pdfCanvasWrapper.classList.add('flex');
+          document.getElementById('pdfZoomLabel').textContent = `${Math.round(activePdfScale * 100)}%`;
+          const curSlot = document.getElementById(`pdf-page-slot-${activePdfPage}`);
+          if (curSlot) curSlot.scrollIntoView({ behavior: 'auto', block: 'start' });
+        } else {
+          otherOriginalWrapper.classList.remove('hidden');
+          document.getElementById('pdfZoomLabel').textContent = `${Math.round(activeDocZoom * 100)}%`;
+        }
+        switchBtn.textContent = "Văn bản";
+      }
+    };
+
+    window.deleteDocument = async (id) => {
+      if (!isAdmin()) return;
+      const item = allDocuments.find(x => x.id === id);
+      if (!item) return;
+      if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn tài liệu "${item.title}" không?`)) return;
+
+      try {
+        for (const docId of (item.allDocIds || [id])) {
+          await deleteDoc(doc(db, "tai_lieu_trien_khai", docId));
+        }
+        if (item.docGroupId) {
+          const snap = await getDocs(query(fileChunksColRef, where("docGroupId", "==", item.docGroupId)));
+          for (const chunkDoc of snap.docs) {
+            await deleteDoc(doc(db, "tai_lieu_file_chunks", chunkDoc.id));
+          }
+          binaryCache.delete(item.docGroupId);
+          pdfDocumentCache.delete(item.docGroupId);
+        }
+        await loadDocuments();
+      } catch (err) {
+        alert("Lỗi khi xóa: " + err.message);
+      }
+    };
+
+    applyRolePermissionsUI();
+    loadDocuments();
+  </script>
+</body>
+</html>
